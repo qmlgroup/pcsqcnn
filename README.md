@@ -52,10 +52,11 @@ This writes rendered PDFs to `figs/`, stores generated intermediate results in `
 
 ## Using Precomputed Artifacts
 
-The Git repository is intended to stay lightweight, so the full artifact tree should be distributed separately as a companion artifact archive or release asset.
+The Git repository is intended to stay lightweight, so the full artifact tree is distributed separately through the
+[`artifacts-v1` GitHub release](https://github.com/qmlgroup/pcsqcnn/releases/tag/artifacts-v1).
 
-After downloading that archive, unpack it into the repository-root `artifacts/` directory so that paths such as
-`artifacts/pcsqcnn_image_size_sweep/16on16/` exist locally.
+After downloading the archive from that release, unpack it into the repository-root `artifacts/` directory so that
+paths such as `artifacts/pcsqcnn_image_size_sweep/16on16/` exist locally.
 
 With precomputed artifacts in place, you can either:
 
