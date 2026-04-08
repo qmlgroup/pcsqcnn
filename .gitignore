@@ -1,0 +1,11 @@
+.venv/
+.marimo/
+__marimo__/
+__pycache__/
+.ipynb_checkpoints/
+/data/
+/artifacts/
+/figs/
+/obsolete/
+/tools/
+.codex
