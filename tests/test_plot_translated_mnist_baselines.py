@@ -388,10 +388,10 @@ def test_plot_article_figure_2b_places_both_limit_labels_slightly_above_lines(
         plot_figure_2.DEFAULT_QUANTUM_LIMIT_LABEL_Y_OFFSET_POINTS
     )
     assert calls_by_label["PCS-QCNN"]["limit_label_y_offset_points"] > 0
-    assert calls_by_label["PCS-QCNN (no QFT)"]["limit_label_y_offset_points"] == (
+    assert calls_by_label["RBC-QCNN"]["limit_label_y_offset_points"] == (
         plot_figure_2.DEFAULT_QUANTUM_LIMIT_LABEL_Y_OFFSET_POINTS
     )
-    assert calls_by_label["PCS-QCNN (no QFT)"]["limit_label_y_offset_points"] > 0
+    assert calls_by_label["RBC-QCNN"]["limit_label_y_offset_points"] > 0
 
     plt.close(figure)
 

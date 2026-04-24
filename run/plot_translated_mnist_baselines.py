@@ -362,8 +362,8 @@ def _load_available_quantum_series_configs(
         (
             "pcsqcnn_no_qft",
             pcsqcnn_no_qft_run_directory,
-            "PCS-QCNN (no QFT)",
-            "Train PCS-QCNN (no QFT)",
+            "RBC-QCNN",
+            "Train RBC-QCNN",
             "C1",
             "--",
         ),
@@ -511,8 +511,8 @@ def plot_article_figure_2b(
             ),
             _Figure2SeriesConfig(
                 histories=pcsqcnn_no_qft_histories,
-                test_label="PCS-QCNN (no QFT)",
-                train_label="Train PCS-QCNN (no QFT)",
+                test_label="RBC-QCNN",
+                train_label="Train RBC-QCNN",
                 color="C1",
                 train_linestyle="--",
                 limit_label_y_offset_points=DEFAULT_QUANTUM_LIMIT_LABEL_Y_OFFSET_POINTS,
@@ -543,7 +543,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
             "Directory containing translated Figure 2 artifacts and the architecture-sweep "
             "directory, for example classical_cnn/16on32, classical_mlp/16on32, "
             f"{DEFAULT_QUANTUM_ARCHITECTURE_SWEEP_DIRECTORY_NAME}/fq{DEFAULT_QUANTUM_FEATURE_QUBITS}_ql{DEFAULT_QUANTUM_LAYERS}, and "
-            "pcsqcnn_no_qft_spc20."
+            "pcsqcnn_no_qft_spc1000."
         ),
     )
     parser.add_argument(
@@ -571,7 +571,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_SAMPLES_PER_CLASS,
         help=(
             "Sample-count suffix used to resolve the fixed no-QFT Figure 2 run directory, "
-            "for example pcsqcnn_no_qft_spc20."
+            "for example pcsqcnn_no_qft_spc1000."
         ),
     )
     parser.add_argument(

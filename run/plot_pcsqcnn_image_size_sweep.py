@@ -35,7 +35,7 @@ class ImageSizeSweepSeries:
 
     @property
     def label(self) -> str:
-        return f"${self.scaled_image_size}\\times{self.image_size}$"
+        return f"{self.scaled_image_size}({self.image_size})"
 
 
 def _require_matplotlib():

@@ -154,10 +154,10 @@ def test_summarize_image_size_sweep_groups_and_sorts_runs(tmp_path: Path) -> Non
         (32, 32),
     ]
     assert [series.label for series in series_by_size] == [
-        "$8\\times8$",
-        "$16\\times16$",
-        "$28\\times32$",
-        "$32\\times32$",
+        "8(8)",
+        "16(16)",
+        "28(32)",
+        "32(32)",
     ]
     assert series_by_size[0].summary.epoch == [10, 20, 30]
     assert series_by_size[0].summary.mean == pytest.approx([0.4, 0.6, 0.7])

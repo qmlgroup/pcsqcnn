@@ -662,14 +662,14 @@ Every renderer below writes into `figs/` by default. The file is then copied unc
   - `samples_per_class=1000`
   - full saved history window unless `--quantum-epoch-start/--quantum-epoch-end` are passed
 - Rendered contract:
-  - Exactly two model series: `PCS-QCNN` and `PCS-QCNN (no QFT)`
+  - Exactly two model series: `PCS-QCNN` and `RBC-QCNN`
   - Test curves:
     - solid line at per-epoch mean test accuracy across seeds
     - shaded band at `mean ± population std`
   - Train curves:
     - mean train accuracy only
     - `PCS-QCNN` train line uses `-.`
-    - `PCS-QCNN (no QFT)` train line uses `--`
+    - `RBC-QCNN` train line uses `--`
   - One horizontal guide line is drawn at each model’s final mean test accuracy.
   - The final mean test accuracies are annotated numerically near the right side of the plot.
   - Axes:
@@ -678,8 +678,8 @@ Every renderer below writes into `figs/` by default. The file is then copied unc
   - Legend entries:
     - `PCS-QCNN`
     - `Train PCS-QCNN`
-    - `PCS-QCNN (no QFT)`
-    - `Train PCS-QCNN (no QFT)`
+    - `RBC-QCNN`
+    - `Train RBC-QCNN`
 - Downstream consumers:
   - Included in `main.tex`
 
