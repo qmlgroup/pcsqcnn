@@ -107,15 +107,15 @@ The sections below use the same field names:
 
 ### Translated-MNIST fixed baselines
 
-- Purpose: Stores the four fixed benchmark run families used to compare classical baselines against PCS-QCNN on translated MNIST and to expose the no-QFT ablation.
+- Purpose: Stores the fixed translated-MNIST baselines used for the classical controls and the matched no-QFT quantum ablation. The PCS-QCNN reference curve for Fig. 2(b) is taken from the architecture-sweep run `pcsqcnn_architecture_sweep_full_readout/fq2_ql3`.
 - Producer script: `run/prepare_translated_mnist_baselines_data.py`
 - On-disk location and filename contract:
   - Root directory: `artifacts/`
   - Run directories:
     - `classical_mlp_spc1000`
     - `classical_cnn_spc1000`
-    - `pcsqcnn_spc1000`
     - `pcsqcnn_no_qft_spc1000`
+    - PCS-QCNN reference for Fig. 2(b): `pcsqcnn_architecture_sweep_full_readout/fq2_ql3`
   - Directory naming rule: `{base_name}_spc{samples_per_class}`
 - Upstream inputs and source data:
   - MNIST train/test data reconstructed under `data/`
@@ -656,7 +656,7 @@ Every renderer below writes into `figs/` by default. The file is then copied unc
   - `figs/translated_mnist_quantum_ablation.pdf`
   - copied unchanged to `figs/translated_mnist_quantum_ablation.pdf`
 - Upstream inputs and source data:
-  - `pcsqcnn_spc1000`
+  - `pcsqcnn_architecture_sweep_full_readout/fq2_ql3`
   - `pcsqcnn_no_qft_spc1000`
 - Exact current defaults from code:
   - `samples_per_class=1000`
