@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from itertools import product
+import math
 import torch
 from torch import nn
 
@@ -753,7 +754,7 @@ class FrqiEncoder2D(nn.Module):
         self,
         feature_qubits: int = 1,
         *,
-        brightness_range: tuple[float, float] = (-1.0, 1.0),
+        brightness_range: tuple[float, float] = (0.0, math.pi),
         dtype: torch.dtype = torch.float32,
     ) -> None:
         super().__init__()

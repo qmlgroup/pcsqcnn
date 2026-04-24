@@ -339,10 +339,11 @@ The current benchmark uses two MNIST regimes:
 - full MNIST: keep the standard train/test split and reuse the existing figure-specific preprocessing choices without semantic changes
 - translated MNIST: use a balanced subset with `1000` training examples per class, resize digits from `28x28` to `16x16`, place them on a `32x32` canvas, sample seeded integer translations from `[-8, 8]`, and keep the standard MNIST test split membership unchanged
 
-The library-level article-alignment warnings still compare configurations
-against the centered article baseline encoded in `qcnn.article`:
+The library-level article-alignment warnings compare configurations against
+the article's translated-benchmark sample-count convention while retaining the
+generic centered-resize preprocessing defaults for the low-level data helper:
 
-- `samples_per_class = 20`
+- `samples_per_class = 1000`
 - `image_size = 16`
 - `scaled_image_size = image_size`
 - `max_offset = 0`
@@ -364,9 +365,9 @@ The preparation pipeline:
 6. Normalize grayscale values into `[0, 1]`.
 
 If `image_size`, `samples_per_class`, or the optional translation pipeline
-deviate from the centered article baseline, the data-preparation API emits
-runtime warnings. The article-aligned encoder angle range remains
-`brightness_range = (-1, 1)` and is now configured on `FrqiEncoder2D` /
+deviate from these helper-level alignment conventions, the data-preparation API
+emits runtime warnings. The article-aligned encoder angle range remains
+`brightness_range = (0, pi)` and is now configured on `FrqiEncoder2D` /
 `PCSQCNN`.
 Prepared `TensorImageDataset` instances also carry lightweight metadata about
 their split and preprocessing settings so artifact serialization can recover the
@@ -380,8 +381,8 @@ Matched behaviors:
 - bilinear interpolation followed by centered placement on a power-of-two canvas
 - normalization of prepared image tensors into `[0, 1]`
 - standard MNIST test split membership remains unchanged
-- article-aligned warning baseline for the centered subset setting: `20` samples per class, `16x16`
-- article-aligned encoder angle range: `[-1, 1]`
+- article-aligned warning baseline for the translated benchmark sample count: `1000` samples per class
+- article-aligned encoder angle range: `(0, pi)`
 - FRQI-like local brightness map `sin(p)|0> + cos(p)|1>`
 
 Intentional mismatch:

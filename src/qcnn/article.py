@@ -4,8 +4,8 @@ The module centralizes the article-aligned defaults used across normalized data
 preparation and encoding:
 
 - ``ARTICLE_ALIGNED_IMAGE_SIZE = 16``
-- ``ARTICLE_ALIGNED_BRIGHTNESS_RANGE = (-1.0, 1.0)``
-- ``ARTICLE_ALIGNED_SAMPLES_PER_CLASS = 20``
+- ``ARTICLE_ALIGNED_BRIGHTNESS_RANGE = (0.0, math.pi)``
+- ``ARTICLE_ALIGNED_SAMPLES_PER_CLASS = 1000``
 
 It also exposes the documented FRQI mismatch message used by the encoder:
 ``FrqiEncoder2D`` intentionally omits the article's global ``1 / sqrt(XY)``
@@ -19,12 +19,13 @@ article-aligned defaults.
 
 from __future__ import annotations
 
+import math
 import warnings
 from collections.abc import Sequence
 
 ARTICLE_ALIGNED_IMAGE_SIZE = 16
-ARTICLE_ALIGNED_BRIGHTNESS_RANGE = (-1.0, 1.0)
-ARTICLE_ALIGNED_SAMPLES_PER_CLASS = 20
+ARTICLE_ALIGNED_BRIGHTNESS_RANGE = (0.0, math.pi)
+ARTICLE_ALIGNED_SAMPLES_PER_CLASS = 1000
 
 ENCODER_NORMALIZATION_MISMATCH = (
     "FrqiEncoder2D intentionally omits the article's global 1/sqrt(XY) "
@@ -46,9 +47,10 @@ def article_alignment_warnings(
         image_size: Optional image side length to compare against the
             article-aligned default ``16``.
         brightness_range: Optional encoder-side brightness interval ``(a, b)``
-            to compare against the article-aligned default ``(-1.0, 1.0)``.
+            to compare against the article-aligned default ``(0.0, math.pi)``.
         samples_per_class: Optional number of training examples per class to
-            compare against the article-aligned low-data default ``20``.
+            compare against the article-aligned translated-benchmark default
+            ``1000``.
         scaled_image_size: Optional intermediate resize side length used before
             placing digits onto the final ``image_size x image_size`` canvas.
         max_offset: Optional maximum integer translation radius used when
@@ -82,7 +84,7 @@ def article_alignment_warnings(
 
     if samples_per_class is not None and samples_per_class != ARTICLE_ALIGNED_SAMPLES_PER_CLASS:
         messages.append(
-            "samples_per_class deviates from the article-aligned low-data default of "
+            "samples_per_class deviates from the article-aligned translated-benchmark default of "
             f"{ARTICLE_ALIGNED_SAMPLES_PER_CLASS}."
         )
 

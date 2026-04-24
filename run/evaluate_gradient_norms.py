@@ -4,6 +4,7 @@ import argparse
 from collections import OrderedDict
 from datetime import datetime, timezone
 import json
+import math
 from pathlib import Path
 import random
 import shutil
@@ -25,7 +26,7 @@ DEFAULT_DATA_ROOT = PROJECT_ROOT / "data"
 DEFAULT_OUTPUT_DIRECTORY_NAME = "depth_scaling_gradient_norms"
 DEFAULT_OUTPUT_FILENAME = "gradient_norms.pt"
 DEFAULT_TASK_RESULT_FILENAME = "result.pt"
-DEFAULT_TASK_FORMAT_VERSION = 2
+DEFAULT_TASK_FORMAT_VERSION = 3
 TEST_SHIFT_SEED_OFFSET = 2_000_033
 
 # Canonical scientific configuration for the init-time gradient figure.
@@ -33,6 +34,7 @@ DEPTHS: tuple[int, ...] = tuple(range(1, 9))
 POST_POOLING_INDEX_QUBITS = 1
 FEATURE_QUBITS = 3
 NUM_CLASSES = 10
+BRIGHTNESS_RANGE = (0.0, math.pi)
 PARAM_SEED_COUNT = 12
 DATA_SEED = 0
 NUM_TEST_SAMPLES = 256
@@ -453,6 +455,7 @@ def build_task_manifest(
         "post_pooling_index_qubits": POST_POOLING_INDEX_QUBITS,
         "feature_qubits": FEATURE_QUBITS,
         "num_classes": NUM_CLASSES,
+        "brightness_range": list(BRIGHTNESS_RANGE),
         "data_seed": DATA_SEED,
         "num_test_samples": NUM_TEST_SAMPLES,
         "class_balanced_subset": CLASS_BALANCED_SUBSET,
@@ -522,6 +525,7 @@ def is_compatible_task_cache(
         "data_seed": DATA_SEED,
         "num_test_samples": NUM_TEST_SAMPLES,
         "class_balanced_subset": CLASS_BALANCED_SUBSET,
+        "brightness_range": list(BRIGHTNESS_RANGE),
     }
     return all(manifest.get(key) == value for key, value in expected_values.items()) and (
         resolved_directory / DEFAULT_TASK_RESULT_FILENAME
@@ -704,6 +708,7 @@ def evaluate_depth_seed_gradient_norms(
             num_classes=NUM_CLASSES,
             feature_qubits=FEATURE_QUBITS,
             quantum_layers=depth,
+            brightness_range=BRIGHTNESS_RANGE,
             reduce_readout_to_feature_distribution=False,
         ).to(resolved_device)
     model.eval()
@@ -799,6 +804,7 @@ def assemble_gradient_norms_payload(*, artifacts_root: str | Path) -> dict[str, 
         "data_seed": DATA_SEED,
         "post_pooling_index_qubits": POST_POOLING_INDEX_QUBITS,
         "feature_qubits": FEATURE_QUBITS,
+        "brightness_range": list(BRIGHTNESS_RANGE),
         "num_test_samples": NUM_TEST_SAMPLES,
         "class_balanced_subset": CLASS_BALANCED_SUBSET,
         "evaluations": evaluations,

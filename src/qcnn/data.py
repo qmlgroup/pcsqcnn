@@ -472,7 +472,7 @@ def _prepare_mnist_splits_from_tensors(
 def prepare_mnist_splits(
     *,
     root: str | Path,
-    samples_per_class: int | None = 20,
+    samples_per_class: int | None = 1000,
     image_size: int = 16,
     scaled_image_size: int | None = None,
     max_offset: int = 0,

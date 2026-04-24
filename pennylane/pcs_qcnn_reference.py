@@ -579,7 +579,7 @@ class PennyLanePCSQCNN:
         feature_qubits: int = 1,
         quantum_layers: int = 1,
         *,
-        brightness_range: tuple[float, float] = (-1.0, 1.0),
+        brightness_range: tuple[float, float] = (0.0, math.pi),
         dtype: Any = np.float32,
     ) -> None:
         if not _is_power_of_two(image_size):

@@ -50,7 +50,7 @@ def _(Path, torch):
     data_root = project_root / "data"
     artifacts_root = project_root / "artifacts"
 
-    samples_per_class = 20
+    samples_per_class = 1000
     image_size = 16
     batch_size = 64
     seed = 0

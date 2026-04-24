@@ -1,3 +1,5 @@
+import math
+
 import pytest
 import torch
 from torch import nn
@@ -14,7 +16,7 @@ def make_model(
     num_classes: int = 3,
     feature_qubits: int = 1,
     quantum_layers: int = 1,
-    brightness_range: tuple[float, float] = (-1.0, 1.0),
+    brightness_range: tuple[float, float] = (0.0, math.pi),
     shot_budget: int | None = None,
     reduce_readout_to_feature_distribution: bool = False,
     use_reduced_fourier_junction: bool = True,
@@ -40,7 +42,7 @@ def make_no_qft_model(
     num_classes: int = 3,
     feature_qubits: int = 1,
     quantum_layers: int = 1,
-    brightness_range: tuple[float, float] = (-1.0, 1.0),
+    brightness_range: tuple[float, float] = (0.0, math.pi),
     shot_budget: int | None = None,
     reduce_readout_to_feature_distribution: bool = False,
     multiplexer_init_scale: float = 0.05,

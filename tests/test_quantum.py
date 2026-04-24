@@ -26,7 +26,7 @@ from qcnn.quantum import (
 def make_encoder(
     feature_qubits: int = 1,
     *,
-    brightness_range: tuple[float, float] = (-1.0, 1.0),
+    brightness_range: tuple[float, float] = (0.0, math.pi),
 ) -> FrqiEncoder2D:
     with pytest.warns(UserWarning, match="1/sqrt\\(XY\\)"):
         return FrqiEncoder2D(feature_qubits=feature_qubits, brightness_range=brightness_range)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import random
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
@@ -49,7 +50,7 @@ class MnistDatasetConfig:
     """
 
     root: str | Path
-    samples_per_class: int | None = 20
+    samples_per_class: int | None = 1000
     image_size: int = 16
     scaled_image_size: int | None = None
     max_offset: int = 0
@@ -69,7 +70,7 @@ def _default_model_spec() -> ModelSpec:
             "num_classes": 10,
             "feature_qubits": 1,
             "quantum_layers": 1,
-            "brightness_range": (-1.0, 1.0),
+            "brightness_range": (0.0, math.pi),
             "shot_budget": None,
             "use_reduced_fourier_junction": True,
             "multiplexer_init_scale": 0.05,

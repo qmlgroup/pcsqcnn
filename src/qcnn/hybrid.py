@@ -21,6 +21,7 @@ the module.
 
 from __future__ import annotations
 
+import math
 import torch
 from torch import nn
 
@@ -186,7 +187,7 @@ class PCSQCNN(nn.Module):
         feature_qubits: int = 1,
         quantum_layers: int = 1,
         *,
-        brightness_range: tuple[float, float] = (-1.0, 1.0),
+        brightness_range: tuple[float, float] = (0.0, math.pi),
         shot_budget: int | None = None,
         reduce_readout_to_feature_distribution: bool = False,
         use_reduced_fourier_junction: bool = True,
@@ -357,7 +358,7 @@ class PCSQCNNNoQFT(nn.Module):
         feature_qubits: int = 1,
         quantum_layers: int = 1,
         *,
-        brightness_range: tuple[float, float] = (-1.0, 1.0),
+        brightness_range: tuple[float, float] = (0.0, math.pi),
         shot_budget: int | None = None,
         reduce_readout_to_feature_distribution: bool = False,
         multiplexer_init_scale: float = 0.05,
