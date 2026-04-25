@@ -120,6 +120,10 @@ def test_build_depth_scaling_image_size_matches_depth_scaling_formula() -> None:
     assert evaluate_gradient_norms.build_depth_scaling_image_size(depth=8) == 256
 
 
+def test_default_gradient_norm_depth_grid_stops_at_seven() -> None:
+    assert evaluate_gradient_norms.DEPTHS == tuple(range(1, 8))
+
+
 def test_build_balanced_test_subset_indices_is_deterministic_and_balanced() -> None:
     labels = torch.tensor([class_id for class_id in range(10) for _ in range(4)], dtype=torch.long)
 

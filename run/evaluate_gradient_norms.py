@@ -31,7 +31,7 @@ DEFAULT_TASK_FORMAT_VERSION = 5
 TEST_SHIFT_SEED_OFFSET = 2_000_033
 
 # Canonical scientific configuration for the init-time gradient figure.
-DEPTHS: tuple[int, ...] = tuple(range(1, 9))
+DEPTHS: tuple[int, ...] = tuple(range(1, 8))
 POST_POOLING_INDEX_QUBITS = 1
 FEATURE_QUBITS = 3
 NUM_CLASSES = 10

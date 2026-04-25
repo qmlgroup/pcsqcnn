@@ -3,6 +3,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+from matplotlib.legend import Legend
 from pathlib import Path
 
 import pytest
@@ -162,17 +163,18 @@ def test_plot_article_figure_s2a_uses_log_y_scale_by_default(tmp_path: Path) -> 
     assert len(figure.axes) == 1
     assert figure.axes[0].get_yscale() == "log"
     assert figure.axes[0].get_xlabel() == "Quantum depth $Q$"
-    legend = figure.axes[0].get_legend()
-    assert legend is not None
-    legend_labels = [text.get_text() for text in legend.get_texts()]
-    assert legend_labels == [
-        "All quantum parameters (empirical loss)",
-        "First quantum layer (empirical loss)",
-        "Last quantum layer (empirical loss)",
-        "All quantum parameters (per-sample RMS)",
-        "First quantum layer (per-sample RMS)",
-        "Last quantum layer (per-sample RMS)",
-    ]
+    legends = [child for child in figure.axes[0].get_children() if isinstance(child, Legend)]
+    assert len(legends) == 2
+    legend_labels = [[text.get_text() for text in legend.get_texts()] for legend in legends]
+    assert [
+        "All quantum parameters",
+        "First quantum layer",
+        "Last quantum layer",
+    ] in legend_labels
+    assert [
+        "Empirical-loss gradient",
+        "Per-sample RMS gradient",
+    ] in legend_labels
 
     plt.close(figure)
 

@@ -296,7 +296,7 @@ The sections below use the same field names:
   - Freshly instantiated random-initialization PCS-QCNN models
   - Deterministically prepared balanced-subset MNIST test samples at the depth-dependent image sizes
 - Exact current defaults from code:
-  - `depths=(1, 2, 3, 4, 5, 6, 7, 8)`
+  - `depths=(1, 2, 3, 4, 5, 6, 7)`
   - `param_seeds=(0, 1, ..., 11)`
   - `data_seed=0`
   - `post_pooling_index_qubits=1`

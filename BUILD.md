@@ -119,7 +119,7 @@ uv run python run/evaluate_finite_shot_snapshots.py
 
 Figure S2a evaluates initialization-time quantum-gradient diagnostics in a
 depth-scaling PCS-QCNN family. The scientific configuration is fixed at the
-top of `run/evaluate_gradient_norms.py`: `n_i=1`, `n_f=3`, `Q=1..8`,
+top of `run/evaluate_gradient_norms.py`: `n_i=1`, `n_f=3`, `Q=1..7`,
 `12` parameter seeds, and a deterministic class-balanced `256`-sample MNIST
 test subset. The rendered figure shows both the norm of the empirical-loss
 gradient and the RMS norm of per-sample gradients. The script also refuses to

@@ -253,6 +253,8 @@ def plot_article_figure_s2a(
     log_y: bool = True,
 ) -> "Figure":
     plt = _require_matplotlib()
+    from matplotlib.lines import Line2D
+
     payload = load_gradient_norms_payload(payload_path)
     series_list = _summarize_gradient_norms_payload_mapping(payload, expected_depths=None)
 
@@ -269,7 +271,7 @@ def plot_article_figure_s2a(
             linestyle=series.linestyle,
             marker="o",
             markersize=3.5,
-            label=series.label,
+            label="_nolegend_",
             band_alpha=0.16,
         )
 
@@ -278,7 +280,65 @@ def plot_article_figure_s2a(
     plotted_depths = series_list[0].summary.epoch
     ax.set_xlim(min(plotted_depths), max(plotted_depths))
     ax.set_yscale("log" if log_y else "linear")
-    ax.legend(loc="upper right", framealpha=0.85)
+
+    color_legend_handles = [
+        Line2D(
+            [0],
+            [0],
+            color="C0",
+            marker="o",
+            linewidth=1.75,
+            markersize=3.5,
+            label="All quantum parameters",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="C1",
+            marker="o",
+            linewidth=1.75,
+            markersize=3.5,
+            label="First quantum layer",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="C2",
+            marker="o",
+            linewidth=1.75,
+            markersize=3.5,
+            label="Last quantum layer",
+        ),
+    ]
+    linestyle_legend_handles = [
+        Line2D(
+            [0],
+            [0],
+            color="0.25",
+            linewidth=1.75,
+            linestyle="-",
+            label="Empirical-loss gradient",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color="0.25",
+            linewidth=1.75,
+            linestyle="--",
+            label="Per-sample RMS gradient",
+        ),
+    ]
+    color_legend = ax.legend(
+        handles=color_legend_handles,
+        loc="upper right",
+        framealpha=0.85,
+    )
+    ax.add_artist(color_legend)
+    ax.legend(
+        handles=linestyle_legend_handles,
+        loc="lower left",
+        framealpha=0.85,
+    )
 
     figure.tight_layout()
     return figure
