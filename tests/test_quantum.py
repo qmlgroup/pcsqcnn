@@ -45,7 +45,7 @@ def make_multiplexer(
     *,
     x_condition_qubits_to_use: int = 0,
     y_condition_qubits_to_use: int = 0,
-    multiplexer_init_scale: float = 0.05,
+    multiplexer_init_scale: float = 2.0 * math.pi,
     dtype: torch.dtype = torch.float32,
 ) -> ModeMultiplexer2D:
     return ModeMultiplexer2D(
@@ -439,8 +439,10 @@ def test_mode_multiplexer_randomly_initializes_block_parameters_by_default() -> 
     torch.manual_seed(123)
     multiplexer = make_multiplexer(layout)
 
-    assert multiplexer.multiplexer_init_scale == pytest.approx(0.05)
+    assert multiplexer.multiplexer_init_scale == pytest.approx(2.0 * math.pi)
     assert torch.count_nonzero(multiplexer.block_parameters) > 0
+    assert torch.all(multiplexer.block_parameters >= 0.0)
+    assert torch.all(multiplexer.block_parameters <= 2.0 * math.pi)
 
 
 def test_mode_multiplexer_initialization_follows_manual_seed_deterministically() -> None:

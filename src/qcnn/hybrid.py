@@ -155,8 +155,10 @@ class PCSQCNN(nn.Module):
         use_reduced_fourier_junction: Whether to replace each explicit
             ``IQFT -> move_active_qubit_to_condition -> QFT`` triple with the
             analytically equivalent reduced junction helper.
-        multiplexer_init_scale: Standard deviation of the Gaussian Pauli-coefficient
-            initialization used by every trainable multiplexer block.
+        multiplexer_init_scale: Upper endpoint of the uniform
+            Pauli-coefficient initialization interval used by every trainable
+            multiplexer block. Each coefficient is sampled from
+            ``Uniform(0, multiplexer_init_scale)``.
         dtype: Real dtype used by the encoder and multiplexer parameters.
 
     Formula:
@@ -191,7 +193,7 @@ class PCSQCNN(nn.Module):
         shot_budget: int | None = None,
         reduce_readout_to_feature_distribution: bool = False,
         use_reduced_fourier_junction: bool = True,
-        multiplexer_init_scale: float = 0.05,
+        multiplexer_init_scale: float = 2.0 * math.pi,
         dtype: torch.dtype = torch.float32,
     ) -> None:
         super().__init__()
@@ -329,8 +331,10 @@ class PCSQCNNNoQFT(nn.Module):
             feature-register distribution with trailing shape ``[1, 1, F]``.
             This Torch-only mode is outside the PennyLane/article reference
             contract, which supports full readout only.
-        multiplexer_init_scale: Standard deviation of the Gaussian Pauli-coefficient
-            initialization used by every trainable multiplexer block.
+        multiplexer_init_scale: Upper endpoint of the uniform
+            Pauli-coefficient initialization interval used by every trainable
+            multiplexer block. Each coefficient is sampled from
+            ``Uniform(0, multiplexer_init_scale)``.
         dtype: Real dtype used by the encoder, multiplexer parameters, and the
             fixed spatial-unitary initialization.
 
@@ -363,7 +367,7 @@ class PCSQCNNNoQFT(nn.Module):
         brightness_range: tuple[float, float] = (0.0, math.pi),
         shot_budget: int | None = None,
         reduce_readout_to_feature_distribution: bool = False,
-        multiplexer_init_scale: float = 0.05,
+        multiplexer_init_scale: float = 2.0 * math.pi,
         dtype: torch.dtype = torch.float32,
     ) -> None:
         super().__init__()

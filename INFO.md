@@ -317,7 +317,7 @@ defaults from `qcnn.article_training.ArticleTrainingDefaults`.
 - `snapshot_epochs=()`
 - `device=None`, which resolves to CUDA when available and CPU otherwise
 - `torch_matmul_precision="high"`
-- `multiplexer_init_scale=0.05`
+- `multiplexer_init_scale=2*pi`, corresponding to uniform Pauli-coefficient initialization on `[0, 2*pi]`
 - `base_seed=0`
 - `seed_count=1` at the base class level, overridden by the article run families below
 - `use_timestamp_dir=False`

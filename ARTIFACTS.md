@@ -140,7 +140,7 @@ The sections below use the same field names:
   - Classical MLP model spec:
     - `ClassicalMLP(image_size=32, num_classes=10, hidden_widths=resolve_classical_mlp_hidden_widths(32, num_classes=10), dropout=0.10)`
   - No-QFT model spec:
-    - `PCSQCNNNoQFT(image_size=32, num_classes=10, feature_qubits=2, quantum_layers=1, brightness_range=(0.0, pi), shot_budget=None, reduce_readout_to_feature_distribution=False, multiplexer_init_scale=0.05)`
+    - `PCSQCNNNoQFT(image_size=32, num_classes=10, feature_qubits=2, quantum_layers=1, brightness_range=(0.0, pi), shot_budget=None, reduce_readout_to_feature_distribution=False, multiplexer_init_scale=2*pi)`
 - Stored contract:
   - Each run directory follows the shared automated run-directory layout.
   - `training_history.train_metrics["accuracy"]` is the source for train curves.

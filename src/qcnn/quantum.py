@@ -585,8 +585,9 @@ class ModeMultiplexer2D(nn.Module):
             used to select a block.
         y_condition_qubits_to_use: Number of most-significant y-condition bits
             used to select a block.
-        multiplexer_init_scale: Standard deviation of the Gaussian Pauli-coefficient
-            initialization used for each trainable feature block.
+        multiplexer_init_scale: Upper endpoint of the uniform
+            Pauli-coefficient initialization interval. Each coefficient is
+            sampled from ``Uniform(0, multiplexer_init_scale)``.
         dtype: Real dtype used for the trainable Pauli coefficients.
 
     Contract:
@@ -616,7 +617,7 @@ class ModeMultiplexer2D(nn.Module):
         *,
         x_condition_qubits_to_use: int = 0,
         y_condition_qubits_to_use: int = 0,
-        multiplexer_init_scale: float = 0.05,
+        multiplexer_init_scale: float = 2.0 * math.pi,
         dtype: torch.dtype = torch.float32,
     ) -> None:
         super().__init__()
@@ -657,19 +658,18 @@ class ModeMultiplexer2D(nn.Module):
         self.x_selected_condition_dim = 2 ** x_condition_qubits_to_use
         self.y_selected_condition_dim = 2 ** y_condition_qubits_to_use
         pauli_parameter_count = 4 ** layout.feature_qubits
-        self.block_parameters = nn.Parameter(
-            torch.randn(
-                (
-                    self.x_selected_condition_dim,
-                    self.y_selected_condition_dim,
-                    layout.x_active_dim,
-                    layout.y_active_dim,
-                    pauli_parameter_count,
-                ),
-                dtype=dtype,
-            )
-            * self.multiplexer_init_scale
+        block_parameters = torch.empty(
+            (
+                self.x_selected_condition_dim,
+                self.y_selected_condition_dim,
+                layout.x_active_dim,
+                layout.y_active_dim,
+                pauli_parameter_count,
+            ),
+            dtype=dtype,
         )
+        block_parameters.uniform_(0.0, self.multiplexer_init_scale)
+        self.block_parameters = nn.Parameter(block_parameters)
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         """Apply the selected feature block to every canonical state slice.

@@ -73,7 +73,7 @@ def _default_model_spec() -> ModelSpec:
             "brightness_range": (0.0, math.pi),
             "shot_budget": None,
             "use_reduced_fourier_junction": True,
-            "multiplexer_init_scale": 0.05,
+            "multiplexer_init_scale": 2.0 * math.pi,
         },
     )
 

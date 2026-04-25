@@ -135,7 +135,7 @@ def _(
                 "quantum_layers": quantum_layers,
                 "brightness_range": brightness_range,
                 "shot_budget": shot_budget,
-                "multiplexer_init_scale": 0.05,
+                "multiplexer_init_scale": 2.0 * math.pi,
             },
         ),
         optimizer=OptimizerConfig(

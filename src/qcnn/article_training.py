@@ -60,7 +60,7 @@ class ArticleTrainingDefaults:
     snapshot_epochs: tuple[int, ...] = ()
     device: str | None = None
     torch_matmul_precision: str | None = "high"
-    multiplexer_init_scale: float = 0.05
+    multiplexer_init_scale: float = 2.0 * math.pi
     base_seed: int = 0
     seed_count: int = 1
     use_timestamp_dir: bool = False

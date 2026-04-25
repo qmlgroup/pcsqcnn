@@ -20,7 +20,7 @@ def make_model(
     shot_budget: int | None = None,
     reduce_readout_to_feature_distribution: bool = False,
     use_reduced_fourier_junction: bool = True,
-    multiplexer_init_scale: float = 0.05,
+    multiplexer_init_scale: float = 2.0 * math.pi,
 ) -> PCSQCNN:
     with pytest.warns(UserWarning, match="1/sqrt\\(XY\\)"):
         return PCSQCNN(
@@ -45,7 +45,7 @@ def make_no_qft_model(
     brightness_range: tuple[float, float] = (0.0, math.pi),
     shot_budget: int | None = None,
     reduce_readout_to_feature_distribution: bool = False,
-    multiplexer_init_scale: float = 0.05,
+    multiplexer_init_scale: float = 2.0 * math.pi,
 ) -> PCSQCNNNoQFT:
     with pytest.warns(UserWarning, match="1/sqrt\\(XY\\)"):
         return PCSQCNNNoQFT(
@@ -112,7 +112,7 @@ def test_pcsqcnn_no_qft_returns_logits_with_expected_shape() -> None:
 
     assert logits.shape == (3, 5)
     assert model.classifier.in_features == 2 * 2 * (2 ** 2)
-    assert model.multiplexer_init_scale == pytest.approx(0.05)
+    assert model.multiplexer_init_scale == pytest.approx(2.0 * math.pi)
 
 
 def test_pcsqcnn_feature_only_readout_uses_feature_distribution_shape() -> None:
@@ -247,7 +247,7 @@ def test_pcsqcnn_builds_expected_conditioning_schedule() -> None:
 
     assert model.use_reduced_fourier_junction is True
     assert model.shot_budget is None
-    assert model.multiplexer_init_scale == pytest.approx(0.05)
+    assert model.multiplexer_init_scale == pytest.approx(2.0 * math.pi)
     assert len(model.multiplexers) == 3
     assert model.multiplexers[0].x_condition_qubits_to_use == 0
     assert model.multiplexers[0].y_condition_qubits_to_use == 0
@@ -263,11 +263,11 @@ def test_pcsqcnn_no_qft_builds_expected_conditioning_schedule() -> None:
         num_classes=4,
         feature_qubits=2,
         quantum_layers=3,
-        multiplexer_init_scale=0.07,
+        multiplexer_init_scale=0.7,
     )
 
     assert model.shot_budget is None
-    assert model.multiplexer_init_scale == pytest.approx(0.07)
+    assert model.multiplexer_init_scale == pytest.approx(0.7)
     assert len(model.multiplexers) == 3
     assert model.multiplexers[0].x_condition_qubits_to_use == 0
     assert model.multiplexers[0].y_condition_qubits_to_use == 0
