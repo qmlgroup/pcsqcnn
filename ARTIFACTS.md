@@ -285,7 +285,7 @@ The sections below use the same field names:
 
 ### `gradient_norms.pt`
 
-- Purpose: Stores the depth-scaling initialization-time RMS quantum-gradient diagnostic used for Figure S2a.
+- Purpose: Stores the depth-scaling initialization-time quantum-gradient diagnostics used for Figure S2a: the norm of the empirical-loss gradient and the RMS norm of per-sample gradients.
 - Producer script: `run/evaluate_gradient_norms.py`
 - On-disk location and filename contract:
   - Assembled payload path: `artifacts/depth_scaling_gradient_norms/gradient_norms.pt`
@@ -304,7 +304,7 @@ The sections below use the same field names:
   - `num_test_samples=256`
   - `class_balanced_subset=True`
   - `task_type="depth_scaling_gradient_norms"`
-  - `format_version=2`
+  - `format_version=5`
   - Local safety guard:
     - `LOCAL_SAFE_MAX_IMAGE_SIZE=256`
     - `LOCAL_SAFE_MAX_PARAM_SEED_COUNT=12`
@@ -326,8 +326,14 @@ The sections below use the same field names:
     - `image_size`
     - `layer_keys`
     - `layer_labels`
-    - `full_quantum_gradient_rms`: scalar tensor for all quantum parameters
-    - `last_quantum_layer_gradient_rms`: scalar tensor for the last quantum layer only
+    - `full_quantum_gradient_norm`: scalar tensor for the empirical-loss gradient over all quantum parameters
+    - `first_quantum_layer_gradient_norm`: scalar tensor for the empirical-loss gradient in the first quantum layer
+    - `last_quantum_layer_gradient_norm`: scalar tensor for the empirical-loss gradient in the last quantum layer
+    - `quantum_layer_gradient_norms`: length-`depth` tensor of empirical-loss gradient norms for all quantum layers
+    - `full_quantum_gradient_rms`: scalar tensor for the per-sample RMS gradient over all quantum parameters
+    - `first_quantum_layer_gradient_rms`: scalar tensor for the per-sample RMS gradient in the first quantum layer
+    - `last_quantum_layer_gradient_rms`: scalar tensor for the per-sample RMS gradient in the last quantum layer
+    - `quantum_layer_gradient_rms`: length-`depth` tensor of per-sample RMS gradient norms for all quantum layers
   - Each task-cache manifest contains:
     - `task_type`
     - `format_version`
@@ -346,8 +352,8 @@ The sections below use the same field names:
     - `result_filename`
 - Computation contract:
   - For each depth/parameter-seed pair, the evaluator instantiates a fresh PCS-QCNN in the depth-scaling regime with `image_size = 2^(post_pooling_index_qubits + depth - 1)`.
-  - The script selects one deterministic class-balanced test subset using `data_seed`, preprocesses it at the depth-dependent image size, and averages squared per-sample gradient norms over that fixed subset.
-  - Per-sample gradients are evaluated with `torch.func.functional_call`, `torch.func.grad`, and `torch.func.vmap`, then reduced microbatch-by-microbatch to avoid storing the full Jacobian.
+  - The script selects one deterministic class-balanced test subset using `data_seed`, preprocesses it at the depth-dependent image size, and accumulates both microbatch gradient sums and squared per-sample gradient norms.
+  - Per-sample gradients are evaluated once with `torch.func.functional_call`, `torch.func.grad`, and `torch.func.vmap`, then reduced microbatch-by-microbatch to avoid storing the full Jacobian.
   - The adaptive microbatch fallback halves the current batch size after CUDA OOM until it reaches `1`; if that still fails, the script raises instead of writing a partial task result.
 - Downstream consumers:
   - `run/plot_gradient_norms.py`
@@ -859,7 +865,7 @@ Every renderer below writes into `figs/` by default. The file is then copied unc
 
 ### `gradient_norms.pdf`
 
-- Purpose: Shows Figure S2a, the depth-scaling initialization-time RMS quantum-gradient diagnostic.
+- Purpose: Shows Figure S2a, the depth-scaling initialization-time quantum-gradient diagnostics.
 - Producer script: `run/plot_gradient_norms.py`
 - On-disk location and filename contract:
   - `figs/gradient_norms.pdf`
@@ -867,13 +873,17 @@ Every renderer below writes into `figs/` by default. The file is then copied unc
 - Upstream inputs and source data:
   - `artifacts/depth_scaling_gradient_norms/gradient_norms.pt`
 - Rendered contract:
-  - Two lines are rendered:
-    - `All quantum parameters`
-    - `Last quantum layer`
-  - Lines use solid style with circular markers and percentile bands across parameter seeds.
+  - Six lines are rendered:
+    - `All quantum parameters (empirical loss)`
+    - `First quantum layer (empirical loss)`
+    - `Last quantum layer (empirical loss)`
+    - `All quantum parameters (per-sample RMS)`
+    - `First quantum layer (per-sample RMS)`
+    - `Last quantum layer (per-sample RMS)`
+  - Lines use circular markers and percentile bands across parameter seeds; solid lines show empirical-loss gradient norms, dashed lines show per-sample RMS gradient norms.
   - Axes:
     - `x = Quantum depth Q`
-    - `y = Initialization RMS gradient norm`
+    - `y = Initialization gradient norm`
 - Downstream consumers:
   - Included in `supplementary.tex`
 

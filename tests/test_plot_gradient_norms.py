@@ -32,7 +32,11 @@ def build_fake_payload() -> dict[str, object]:
                 "image_size": 2,
                 "layer_keys": ["multiplexers.0"],
                 "layer_labels": ["Quantum 1"],
+                "full_quantum_gradient_norm": torch.tensor(0.30, dtype=torch.float32),
+                "first_quantum_layer_gradient_norm": torch.tensor(0.30, dtype=torch.float32),
+                "last_quantum_layer_gradient_norm": torch.tensor(0.30, dtype=torch.float32),
                 "full_quantum_gradient_rms": torch.tensor(0.10, dtype=torch.float32),
+                "first_quantum_layer_gradient_rms": torch.tensor(0.10, dtype=torch.float32),
                 "last_quantum_layer_gradient_rms": torch.tensor(0.10, dtype=torch.float32),
             },
             {
@@ -41,7 +45,11 @@ def build_fake_payload() -> dict[str, object]:
                 "image_size": 2,
                 "layer_keys": ["multiplexers.0"],
                 "layer_labels": ["Quantum 1"],
+                "full_quantum_gradient_norm": torch.tensor(0.50, dtype=torch.float32),
+                "first_quantum_layer_gradient_norm": torch.tensor(0.50, dtype=torch.float32),
+                "last_quantum_layer_gradient_norm": torch.tensor(0.50, dtype=torch.float32),
                 "full_quantum_gradient_rms": torch.tensor(0.20, dtype=torch.float32),
+                "first_quantum_layer_gradient_rms": torch.tensor(0.20, dtype=torch.float32),
                 "last_quantum_layer_gradient_rms": torch.tensor(0.20, dtype=torch.float32),
             },
             {
@@ -50,7 +58,11 @@ def build_fake_payload() -> dict[str, object]:
                 "image_size": 4,
                 "layer_keys": ["multiplexers.0", "multiplexers.1"],
                 "layer_labels": ["Quantum 1", "Quantum 2"],
+                "full_quantum_gradient_norm": torch.tensor(0.70, dtype=torch.float32),
+                "first_quantum_layer_gradient_norm": torch.tensor(0.20, dtype=torch.float32),
+                "last_quantum_layer_gradient_norm": torch.tensor(0.60, dtype=torch.float32),
                 "full_quantum_gradient_rms": torch.tensor(0.30, dtype=torch.float32),
+                "first_quantum_layer_gradient_rms": torch.tensor(0.10, dtype=torch.float32),
                 "last_quantum_layer_gradient_rms": torch.tensor(0.15, dtype=torch.float32),
             },
             {
@@ -59,7 +71,11 @@ def build_fake_payload() -> dict[str, object]:
                 "image_size": 4,
                 "layer_keys": ["multiplexers.0", "multiplexers.1"],
                 "layer_labels": ["Quantum 1", "Quantum 2"],
+                "full_quantum_gradient_norm": torch.tensor(0.90, dtype=torch.float32),
+                "first_quantum_layer_gradient_norm": torch.tensor(0.40, dtype=torch.float32),
+                "last_quantum_layer_gradient_norm": torch.tensor(0.80, dtype=torch.float32),
                 "full_quantum_gradient_rms": torch.tensor(0.50, dtype=torch.float32),
+                "first_quantum_layer_gradient_rms": torch.tensor(0.20, dtype=torch.float32),
                 "last_quantum_layer_gradient_rms": torch.tensor(0.25, dtype=torch.float32),
             },
             {
@@ -68,7 +84,11 @@ def build_fake_payload() -> dict[str, object]:
                 "image_size": 8,
                 "layer_keys": ["multiplexers.0", "multiplexers.1", "multiplexers.2"],
                 "layer_labels": ["Quantum 1", "Quantum 2", "Quantum 3"],
+                "full_quantum_gradient_norm": torch.tensor(1.10, dtype=torch.float32),
+                "first_quantum_layer_gradient_norm": torch.tensor(0.10, dtype=torch.float32),
+                "last_quantum_layer_gradient_norm": torch.tensor(0.50, dtype=torch.float32),
                 "full_quantum_gradient_rms": torch.tensor(0.35, dtype=torch.float32),
+                "first_quantum_layer_gradient_rms": torch.tensor(0.08, dtype=torch.float32),
                 "last_quantum_layer_gradient_rms": torch.tensor(0.12, dtype=torch.float32),
             },
             {
@@ -77,7 +97,11 @@ def build_fake_payload() -> dict[str, object]:
                 "image_size": 8,
                 "layer_keys": ["multiplexers.0", "multiplexers.1", "multiplexers.2"],
                 "layer_labels": ["Quantum 1", "Quantum 2", "Quantum 3"],
+                "full_quantum_gradient_norm": torch.tensor(1.30, dtype=torch.float32),
+                "first_quantum_layer_gradient_norm": torch.tensor(0.30, dtype=torch.float32),
+                "last_quantum_layer_gradient_norm": torch.tensor(0.70, dtype=torch.float32),
                 "full_quantum_gradient_rms": torch.tensor(0.45, dtype=torch.float32),
+                "first_quantum_layer_gradient_rms": torch.tensor(0.18, dtype=torch.float32),
                 "last_quantum_layer_gradient_rms": torch.tensor(0.22, dtype=torch.float32),
             },
         ],
@@ -89,7 +113,7 @@ def write_fake_payload(payload_path: Path) -> None:
     torch.save(build_fake_payload(), payload_path)
 
 
-def test_summarize_gradient_norms_payload_builds_full_and_last_layer_series(tmp_path: Path) -> None:
+def test_summarize_gradient_norms_payload_builds_empirical_and_rms_series(tmp_path: Path) -> None:
     payload_path = (
         tmp_path
         / "artifacts"
@@ -104,14 +128,24 @@ def test_summarize_gradient_norms_payload_builds_full_and_last_layer_series(tmp_
     )
 
     assert [series.label for series in series_list] == [
-        "All quantum parameters",
-        "Last quantum layer",
+        "All quantum parameters (empirical loss)",
+        "First quantum layer (empirical loss)",
+        "Last quantum layer (empirical loss)",
+        "All quantum parameters (per-sample RMS)",
+        "First quantum layer (per-sample RMS)",
+        "Last quantum layer (per-sample RMS)",
     ]
     assert series_list[0].summary.epoch == [1, 2, 3]
-    assert series_list[0].summary.mean == pytest.approx([0.15, 0.4, 0.4])
+    assert series_list[0].summary.mean == pytest.approx([0.4, 0.8, 1.2])
     assert series_list[0].summary.lower is not None
     assert series_list[0].summary.upper is not None
-    assert series_list[1].summary.mean == pytest.approx([0.15, 0.2, 0.17])
+    assert series_list[1].summary.mean == pytest.approx([0.4, 0.3, 0.2])
+    assert series_list[2].summary.mean == pytest.approx([0.4, 0.7, 0.6])
+    assert series_list[3].summary.mean == pytest.approx([0.15, 0.4, 0.4])
+    assert series_list[4].summary.mean == pytest.approx([0.15, 0.15, 0.13])
+    assert series_list[5].summary.mean == pytest.approx([0.15, 0.2, 0.17])
+    assert [series.linestyle for series in series_list] == ["-", "-", "-", "--", "--", "--"]
+    assert [series.color for series in series_list] == ["C0", "C1", "C2", "C0", "C1", "C2"]
 
 
 def test_plot_article_figure_s2a_uses_log_y_scale_by_default(tmp_path: Path) -> None:
@@ -132,8 +166,12 @@ def test_plot_article_figure_s2a_uses_log_y_scale_by_default(tmp_path: Path) -> 
     assert legend is not None
     legend_labels = [text.get_text() for text in legend.get_texts()]
     assert legend_labels == [
-        "All quantum parameters",
-        "Last quantum layer",
+        "All quantum parameters (empirical loss)",
+        "First quantum layer (empirical loss)",
+        "Last quantum layer (empirical loss)",
+        "All quantum parameters (per-sample RMS)",
+        "First quantum layer (per-sample RMS)",
+        "Last quantum layer (per-sample RMS)",
     ]
 
     plt.close(figure)

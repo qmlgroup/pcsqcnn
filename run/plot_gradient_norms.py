@@ -25,6 +25,8 @@ DEFAULT_PAYLOAD_FILENAME = "gradient_norms.pt"
 class GradientNormSeries:
     label: str
     summary: TemporalStatisticSummary
+    color: str
+    linestyle: str
 
 
 def _require_matplotlib():
@@ -61,20 +63,52 @@ def _summarize_gradient_norms_payload_mapping(
     if not isinstance(evaluations, list):
         raise ValueError("gradient-norm payload must contain an 'evaluations' list.")
 
-    total_by_depth: dict[int, list[float]] = {depth: [] for depth in resolved_depths}
-    last_by_depth: dict[int, list[float]] = {depth: [] for depth in resolved_depths}
+    total_norm_by_depth: dict[int, list[float]] = {depth: [] for depth in resolved_depths}
+    first_norm_by_depth: dict[int, list[float]] = {depth: [] for depth in resolved_depths}
+    last_norm_by_depth: dict[int, list[float]] = {depth: [] for depth in resolved_depths}
+    total_rms_by_depth: dict[int, list[float]] = {depth: [] for depth in resolved_depths}
+    first_rms_by_depth: dict[int, list[float]] = {depth: [] for depth in resolved_depths}
+    last_rms_by_depth: dict[int, list[float]] = {depth: [] for depth in resolved_depths}
 
     for evaluation in evaluations:
         if not isinstance(evaluation, Mapping):
             raise ValueError("Each gradient-norm evaluation entry must be a mapping.")
         depth = evaluation.get("depth")
+        full_quantum_gradient_norm = evaluation.get("full_quantum_gradient_norm")
+        first_quantum_layer_gradient_norm = evaluation.get("first_quantum_layer_gradient_norm")
+        last_quantum_layer_gradient_norm = evaluation.get("last_quantum_layer_gradient_norm")
         full_quantum_gradient_rms = evaluation.get("full_quantum_gradient_rms")
+        first_quantum_layer_gradient_rms = evaluation.get("first_quantum_layer_gradient_rms")
         last_quantum_layer_gradient_rms = evaluation.get("last_quantum_layer_gradient_rms")
 
         if not isinstance(depth, int):
             raise ValueError("Each gradient-norm evaluation entry must contain an integer 'depth'.")
-        if depth not in total_by_depth:
+        if depth not in total_norm_by_depth:
             raise ValueError(f"Unexpected depth {depth!r} in gradient payload.")
+        if (
+            not isinstance(full_quantum_gradient_norm, torch.Tensor)
+            or full_quantum_gradient_norm.ndim != 0
+        ):
+            raise ValueError(
+                "Each gradient-norm evaluation entry must contain a scalar "
+                "'full_quantum_gradient_norm' tensor."
+            )
+        if (
+            not isinstance(first_quantum_layer_gradient_norm, torch.Tensor)
+            or first_quantum_layer_gradient_norm.ndim != 0
+        ):
+            raise ValueError(
+                "Each gradient-norm evaluation entry must contain a scalar "
+                "'first_quantum_layer_gradient_norm' tensor."
+            )
+        if (
+            not isinstance(last_quantum_layer_gradient_norm, torch.Tensor)
+            or last_quantum_layer_gradient_norm.ndim != 0
+        ):
+            raise ValueError(
+                "Each gradient-norm evaluation entry must contain a scalar "
+                "'last_quantum_layer_gradient_norm' tensor."
+            )
         if (
             not isinstance(full_quantum_gradient_rms, torch.Tensor)
             or full_quantum_gradient_rms.ndim != 0
@@ -82,6 +116,14 @@ def _summarize_gradient_norms_payload_mapping(
             raise ValueError(
                 "Each gradient-norm evaluation entry must contain a scalar "
                 "'full_quantum_gradient_rms' tensor."
+            )
+        if (
+            not isinstance(first_quantum_layer_gradient_rms, torch.Tensor)
+            or first_quantum_layer_gradient_rms.ndim != 0
+        ):
+            raise ValueError(
+                "Each gradient-norm evaluation entry must contain a scalar "
+                "'first_quantum_layer_gradient_rms' tensor."
             )
         if (
             not isinstance(last_quantum_layer_gradient_rms, torch.Tensor)
@@ -92,34 +134,98 @@ def _summarize_gradient_norms_payload_mapping(
                 "'last_quantum_layer_gradient_rms' tensor."
             )
 
-        total_by_depth[depth].append(float(full_quantum_gradient_rms.item()))
-        last_by_depth[depth].append(float(last_quantum_layer_gradient_rms.item()))
+        total_norm_by_depth[depth].append(float(full_quantum_gradient_norm.item()))
+        first_norm_by_depth[depth].append(float(first_quantum_layer_gradient_norm.item()))
+        last_norm_by_depth[depth].append(float(last_quantum_layer_gradient_norm.item()))
+        total_rms_by_depth[depth].append(float(full_quantum_gradient_rms.item()))
+        first_rms_by_depth[depth].append(float(first_quantum_layer_gradient_rms.item()))
+        last_rms_by_depth[depth].append(float(last_quantum_layer_gradient_rms.item()))
 
-    total_samples_by_depth = [total_by_depth[depth] for depth in resolved_depths]
-    last_samples_by_depth = [last_by_depth[depth] for depth in resolved_depths]
-    if any(not samples for samples in total_samples_by_depth):
+    total_norm_samples_by_depth = [total_norm_by_depth[depth] for depth in resolved_depths]
+    first_norm_samples_by_depth = [first_norm_by_depth[depth] for depth in resolved_depths]
+    last_norm_samples_by_depth = [last_norm_by_depth[depth] for depth in resolved_depths]
+    total_rms_samples_by_depth = [total_rms_by_depth[depth] for depth in resolved_depths]
+    first_rms_samples_by_depth = [first_rms_by_depth[depth] for depth in resolved_depths]
+    last_rms_samples_by_depth = [last_rms_by_depth[depth] for depth in resolved_depths]
+    if any(not samples for samples in total_norm_samples_by_depth):
         raise ValueError("Every depth must have at least one total-gradient sample.")
-    if any(not samples for samples in last_samples_by_depth):
+    if any(not samples for samples in first_norm_samples_by_depth):
+        raise ValueError("Every depth must have at least one first-layer sample.")
+    if any(not samples for samples in last_norm_samples_by_depth):
         raise ValueError("Every depth must have at least one last-layer sample.")
+    if any(not samples for samples in total_rms_samples_by_depth):
+        raise ValueError("Every depth must have at least one total-gradient RMS sample.")
+    if any(not samples for samples in first_rms_samples_by_depth):
+        raise ValueError("Every depth must have at least one first-layer RMS sample.")
+    if any(not samples for samples in last_rms_samples_by_depth):
+        raise ValueError("Every depth must have at least one last-layer RMS sample.")
 
     return [
         GradientNormSeries(
-            label="All quantum parameters",
+            label="All quantum parameters (empirical loss)",
             summary=summarize_temporal_samples(
                 resolved_depths,
-                total_samples_by_depth,
+                total_norm_samples_by_depth,
                 lower_percentile=lower_percentile,
                 upper_percentile=upper_percentile,
             ),
+            color="C0",
+            linestyle="-",
         ),
         GradientNormSeries(
-            label="Last quantum layer",
+            label="First quantum layer (empirical loss)",
             summary=summarize_temporal_samples(
                 resolved_depths,
-                last_samples_by_depth,
+                first_norm_samples_by_depth,
                 lower_percentile=lower_percentile,
                 upper_percentile=upper_percentile,
             ),
+            color="C1",
+            linestyle="-",
+        ),
+        GradientNormSeries(
+            label="Last quantum layer (empirical loss)",
+            summary=summarize_temporal_samples(
+                resolved_depths,
+                last_norm_samples_by_depth,
+                lower_percentile=lower_percentile,
+                upper_percentile=upper_percentile,
+            ),
+            color="C2",
+            linestyle="-",
+        ),
+        GradientNormSeries(
+            label="All quantum parameters (per-sample RMS)",
+            summary=summarize_temporal_samples(
+                resolved_depths,
+                total_rms_samples_by_depth,
+                lower_percentile=lower_percentile,
+                upper_percentile=upper_percentile,
+            ),
+            color="C0",
+            linestyle="--",
+        ),
+        GradientNormSeries(
+            label="First quantum layer (per-sample RMS)",
+            summary=summarize_temporal_samples(
+                resolved_depths,
+                first_rms_samples_by_depth,
+                lower_percentile=lower_percentile,
+                upper_percentile=upper_percentile,
+            ),
+            color="C1",
+            linestyle="--",
+        ),
+        GradientNormSeries(
+            label="Last quantum layer (per-sample RMS)",
+            summary=summarize_temporal_samples(
+                resolved_depths,
+                last_rms_samples_by_depth,
+                lower_percentile=lower_percentile,
+                upper_percentile=upper_percentile,
+            ),
+            color="C2",
+            linestyle="--",
         ),
     ]
 
@@ -154,13 +260,13 @@ def plot_article_figure_s2a(
     figure.patch.set_facecolor("white")
     ax.set_facecolor("white")
 
-    for series_index, series in enumerate(series_list):
+    for series in series_list:
         plot_temporal_summary(
             ax,
             summary=series.summary,
-            color=f"C{series_index % 10}",
+            color=series.color,
             linewidth=1.75,
-            linestyle="-",
+            linestyle=series.linestyle,
             marker="o",
             markersize=3.5,
             label=series.label,
@@ -168,11 +274,11 @@ def plot_article_figure_s2a(
         )
 
     ax.set_xlabel("Quantum depth $Q$")
-    ax.set_ylabel("Initialization RMS gradient norm")
+    ax.set_ylabel("Initialization gradient norm")
     plotted_depths = series_list[0].summary.epoch
     ax.set_xlim(min(plotted_depths), max(plotted_depths))
     ax.set_yscale("log" if log_y else "linear")
-    ax.legend(loc="center right", framealpha=0.85)
+    ax.legend(loc="upper right", framealpha=0.85)
 
     figure.tight_layout()
     return figure

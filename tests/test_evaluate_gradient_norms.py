@@ -67,12 +67,38 @@ def make_fake_gradient_evaluation(*, param_seed: int, depth: int) -> dict[str, o
         "max_offset": max(0, image_size // 4),
         "layer_keys": [f"multiplexers.{layer_index}" for layer_index in range(depth)],
         "layer_labels": [f"Quantum {layer_index + 1}" for layer_index in range(depth)],
+        "full_quantum_gradient_norm": torch.tensor(
+            0.15 * depth + 0.01 * param_seed,
+            dtype=torch.float32,
+        ),
+        "first_quantum_layer_gradient_norm": torch.tensor(
+            0.02 * depth + 0.01 * param_seed,
+            dtype=torch.float32,
+        ),
+        "last_quantum_layer_gradient_norm": torch.tensor(
+            0.03 * depth + 0.01 * param_seed,
+            dtype=torch.float32,
+        ),
+        "quantum_layer_gradient_norms": torch.full(
+            (depth,),
+            0.04 * depth + 0.01 * param_seed,
+            dtype=torch.float32,
+        ),
         "full_quantum_gradient_rms": torch.tensor(
             0.25 * depth + 0.01 * param_seed,
             dtype=torch.float32,
         ),
+        "first_quantum_layer_gradient_rms": torch.tensor(
+            0.04 * depth + 0.01 * param_seed,
+            dtype=torch.float32,
+        ),
         "last_quantum_layer_gradient_rms": torch.tensor(
             0.05 * depth + 0.01 * param_seed,
+            dtype=torch.float32,
+        ),
+        "quantum_layer_gradient_rms": torch.full(
+            (depth,),
+            0.06 * depth + 0.01 * param_seed,
             dtype=torch.float32,
         ),
     }

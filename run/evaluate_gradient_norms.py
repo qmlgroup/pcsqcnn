@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from collections import OrderedDict
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 import math
@@ -26,7 +27,7 @@ DEFAULT_DATA_ROOT = PROJECT_ROOT / "data"
 DEFAULT_OUTPUT_DIRECTORY_NAME = "depth_scaling_gradient_norms"
 DEFAULT_OUTPUT_FILENAME = "gradient_norms.pt"
 DEFAULT_TASK_RESULT_FILENAME = "result.pt"
-DEFAULT_TASK_FORMAT_VERSION = 3
+DEFAULT_TASK_FORMAT_VERSION = 5
 TEST_SHIFT_SEED_OFFSET = 2_000_033
 
 # Canonical scientific configuration for the init-time gradient figure.
@@ -56,6 +57,14 @@ LOCAL_SAFE_MAX_IMAGE_SIZE = 256
 LOCAL_SAFE_MAX_PARAM_SEED_COUNT = 12
 LOCAL_SAFE_MAX_NUM_TEST_SAMPLES = 256
 LOCAL_SAFE_MAX_TOTAL_WORK = 3072
+
+
+@dataclass(frozen=True)
+class BatchGradientDiagnostics:
+    full_squared_norms: torch.Tensor
+    last_squared_norms: torch.Tensor
+    layer_squared_norm_sums: tuple[torch.Tensor, ...]
+    layer_gradient_sums: tuple[torch.Tensor, ...]
 
 
 def _build_progress_columns() -> tuple[object, ...]:
@@ -554,7 +563,7 @@ def clear_incompatible_task_caches(*, artifacts_root: Path) -> None:
 
 def build_parameter_name_groups(
     model: PCSQCNN,
-) -> tuple[list[str], list[str], list[str], list[str]]:
+) -> tuple[list[str], list[str], list[str], list[list[str]]]:
     layer_blocks = resolve_snapshot_trainable_layer_blocks(model)
     if not layer_blocks or layer_blocks[-1][0] != "classifier":
         raise ValueError("Expected resolve_snapshot_trainable_layer_blocks() to end with the classifier.")
@@ -564,13 +573,16 @@ def build_parameter_name_groups(
 
     layer_keys = [layer_key for layer_key, _, _ in quantum_blocks]
     layer_labels = [layer_label for _, layer_label, _ in quantum_blocks]
+    quantum_parameter_names_by_layer = [
+        [name for name, _ in group_parameters]
+        for _, _, group_parameters in quantum_blocks
+    ]
     full_quantum_parameter_names = [
         name
-        for _, _, group_parameters in quantum_blocks
-        for name, _ in group_parameters
+        for layer_parameter_names in quantum_parameter_names_by_layer
+        for name in layer_parameter_names
     ]
-    last_quantum_parameter_names = [name for name, _ in quantum_blocks[-1][2]]
-    return layer_keys, layer_labels, full_quantum_parameter_names, last_quantum_parameter_names
+    return layer_keys, layer_labels, full_quantum_parameter_names, quantum_parameter_names_by_layer
 
 
 def build_per_sample_gradient_function(
@@ -632,6 +644,43 @@ def compute_per_sample_squared_gradient_norms(
     return full_squared_norms, last_squared_norms
 
 
+def compute_batch_gradient_diagnostics(
+    parameters: OrderedDict[str, torch.Tensor],
+    batch_images: torch.Tensor,
+    batch_labels: torch.Tensor,
+    *,
+    per_sample_gradient_fn: Callable[[OrderedDict[str, torch.Tensor], torch.Tensor, torch.Tensor], OrderedDict[str, torch.Tensor]],
+    quantum_parameter_names_by_layer: Sequence[Sequence[str]],
+) -> BatchGradientDiagnostics:
+    gradients = per_sample_gradient_fn(parameters, batch_images, batch_labels)
+    batch_size = int(batch_images.shape[0])
+    full_squared_norms = torch.zeros(batch_size, dtype=torch.float64, device=batch_images.device)
+    last_squared_norms = torch.zeros(batch_size, dtype=torch.float64, device=batch_images.device)
+    layer_squared_norm_sums: list[torch.Tensor] = []
+    layer_gradient_sums: list[torch.Tensor] = []
+
+    for layer_index, layer_parameter_names in enumerate(quantum_parameter_names_by_layer):
+        layer_squared_norms = torch.zeros(batch_size, dtype=torch.float64, device=batch_images.device)
+        layer_gradient_sum_parts: list[torch.Tensor] = []
+        for name in layer_parameter_names:
+            gradient = gradients[name].reshape(batch_size, -1).to(dtype=torch.float64)
+            layer_squared_norms += gradient.pow(2).sum(dim=1)
+            layer_gradient_sum_parts.append(gradient.sum(dim=0))
+
+        full_squared_norms += layer_squared_norms
+        if layer_index == len(quantum_parameter_names_by_layer) - 1:
+            last_squared_norms = layer_squared_norms
+        layer_squared_norm_sums.append(layer_squared_norms.sum())
+        layer_gradient_sums.append(torch.cat(layer_gradient_sum_parts, dim=0))
+
+    return BatchGradientDiagnostics(
+        full_squared_norms=full_squared_norms,
+        last_squared_norms=last_squared_norms,
+        layer_squared_norm_sums=tuple(layer_squared_norm_sums),
+        layer_gradient_sums=tuple(layer_gradient_sums),
+    )
+
+
 def accumulate_microbatched_squared_gradient_norm_sums(
     images: torch.Tensor,
     labels: torch.Tensor,
@@ -684,6 +733,95 @@ def accumulate_microbatched_squared_gradient_norm_sums(
     return total_full_squared_norm_sum, total_last_squared_norm_sum
 
 
+def accumulate_microbatched_gradient_diagnostics(
+    images: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    initial_batch_size: int,
+    device: torch.device,
+    batch_evaluator: Callable[[torch.Tensor, torch.Tensor], BatchGradientDiagnostics],
+    on_batch_completed: Callable[[int], None] | None = None,
+    on_batch_size_reduced: Callable[[int, int], None] | None = None,
+) -> tuple[torch.Tensor, torch.Tensor, tuple[torch.Tensor, ...], tuple[torch.Tensor, ...]]:
+    if initial_batch_size < 1:
+        raise ValueError(f"initial_batch_size must be positive, got {initial_batch_size}.")
+
+    total_full_squared_norm_sum = torch.zeros((), dtype=torch.float64, device=device)
+    total_last_squared_norm_sum = torch.zeros((), dtype=torch.float64, device=device)
+    total_layer_squared_norm_sums: list[torch.Tensor] | None = None
+    total_layer_gradient_sums: list[torch.Tensor] | None = None
+    sample_count = int(images.shape[0])
+    start = 0
+    current_batch_size = min(initial_batch_size, sample_count)
+
+    while start < sample_count:
+        batch_stop = min(start + current_batch_size, sample_count)
+        try:
+            batch_diagnostics = batch_evaluator(
+                images[start:batch_stop],
+                labels[start:batch_stop],
+            )
+        except BaseException as exc:
+            if not _is_oom_error(exc):
+                raise
+            if current_batch_size <= 1:
+                raise RuntimeError(
+                    "Gradient diagnostics exhausted the adaptive microbatch fallback "
+                    f"at sample range [{start}:{batch_stop}] on device {device}."
+                ) from exc
+            old_batch_size = current_batch_size
+            current_batch_size = max(1, current_batch_size // 2)
+            if on_batch_size_reduced is not None:
+                on_batch_size_reduced(old_batch_size, current_batch_size)
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+            continue
+
+        if total_layer_gradient_sums is None:
+            total_layer_gradient_sums = [
+                torch.zeros_like(layer_gradient_sum)
+                for layer_gradient_sum in batch_diagnostics.layer_gradient_sums
+            ]
+        if total_layer_squared_norm_sums is None:
+            total_layer_squared_norm_sums = [
+                torch.zeros_like(layer_squared_norm_sum)
+                for layer_squared_norm_sum in batch_diagnostics.layer_squared_norm_sums
+            ]
+        if len(total_layer_gradient_sums) != len(batch_diagnostics.layer_gradient_sums):
+            raise ValueError("Batch gradient diagnostics changed the number of quantum layers.")
+        if len(total_layer_squared_norm_sums) != len(batch_diagnostics.layer_squared_norm_sums):
+            raise ValueError("Batch gradient diagnostics changed the number of quantum layers.")
+
+        completed_batch_size = batch_stop - start
+        total_full_squared_norm_sum += batch_diagnostics.full_squared_norms.sum()
+        total_last_squared_norm_sum += batch_diagnostics.last_squared_norms.sum()
+        for total_squared_norm_sum, batch_squared_norm_sum in zip(
+            total_layer_squared_norm_sums,
+            batch_diagnostics.layer_squared_norm_sums,
+            strict=True,
+        ):
+            total_squared_norm_sum += batch_squared_norm_sum
+        for total_gradient_sum, batch_gradient_sum in zip(
+            total_layer_gradient_sums,
+            batch_diagnostics.layer_gradient_sums,
+            strict=True,
+        ):
+            total_gradient_sum += batch_gradient_sum
+        if on_batch_completed is not None:
+            on_batch_completed(completed_batch_size)
+        start = batch_stop
+
+    if total_layer_squared_norm_sums is None or total_layer_gradient_sums is None:
+        raise ValueError("Gradient diagnostics require at least one sample.")
+
+    return (
+        total_full_squared_norm_sum,
+        total_last_squared_norm_sum,
+        tuple(total_layer_squared_norm_sums),
+        tuple(total_layer_gradient_sums),
+    )
+
+
 def evaluate_depth_seed_gradient_norms(
     *,
     depth: int,
@@ -713,22 +851,27 @@ def evaluate_depth_seed_gradient_norms(
         ).to(resolved_device)
     model.eval()
 
-    layer_keys, layer_labels, full_quantum_parameter_names, last_quantum_parameter_names = (
+    layer_keys, layer_labels, full_quantum_parameter_names, quantum_parameter_names_by_layer = (
         build_parameter_name_groups(model)
     )
+    del full_quantum_parameter_names
     parameters, per_sample_gradient_fn = build_per_sample_gradient_function(model)
 
-    def batch_evaluator(batch_images: torch.Tensor, batch_labels: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        return compute_per_sample_squared_gradient_norms(
+    def batch_evaluator(batch_images: torch.Tensor, batch_labels: torch.Tensor) -> BatchGradientDiagnostics:
+        return compute_batch_gradient_diagnostics(
             parameters,
             batch_images,
             batch_labels,
             per_sample_gradient_fn=per_sample_gradient_fn,
-            full_quantum_parameter_names=full_quantum_parameter_names,
-            last_quantum_parameter_names=last_quantum_parameter_names,
+            quantum_parameter_names_by_layer=quantum_parameter_names_by_layer,
         )
 
-    full_squared_norm_sum, last_squared_norm_sum = accumulate_microbatched_squared_gradient_norm_sums(
+    (
+        full_squared_norm_sum,
+        last_squared_norm_sum,
+        layer_squared_norm_sums,
+        layer_gradient_sums,
+    ) = accumulate_microbatched_gradient_diagnostics(
         prepared_images,
         prepared_labels,
         initial_batch_size=grad_batch_size,
@@ -742,6 +885,24 @@ def evaluate_depth_seed_gradient_norms(
     last_quantum_layer_gradient_rms = torch.sqrt(last_squared_norm_sum / float(sample_count)).to(
         dtype=torch.float32
     ).cpu()
+    quantum_layer_gradient_rms = torch.stack(
+        [
+            torch.sqrt(layer_squared_norm_sum / float(sample_count))
+            for layer_squared_norm_sum in layer_squared_norm_sums
+        ]
+    ).to(dtype=torch.float32).cpu()
+    first_quantum_layer_gradient_rms = quantum_layer_gradient_rms[0].clone()
+    quantum_layer_gradient_norms = torch.stack(
+        [
+            (layer_gradient_sum / float(sample_count)).norm()
+            for layer_gradient_sum in layer_gradient_sums
+        ]
+    ).to(dtype=torch.float32).cpu()
+    full_quantum_gradient_norm = torch.linalg.vector_norm(quantum_layer_gradient_norms.to(dtype=torch.float64)).to(
+        dtype=torch.float32
+    )
+    first_quantum_layer_gradient_norm = quantum_layer_gradient_norms[0].clone()
+    last_quantum_layer_gradient_norm = quantum_layer_gradient_norms[-1].clone()
 
     return {
         "depth": depth,
@@ -751,8 +912,14 @@ def evaluate_depth_seed_gradient_norms(
         "max_offset": max_offset,
         "layer_keys": layer_keys,
         "layer_labels": layer_labels,
+        "full_quantum_gradient_norm": full_quantum_gradient_norm.cpu(),
+        "first_quantum_layer_gradient_norm": first_quantum_layer_gradient_norm.cpu(),
+        "last_quantum_layer_gradient_norm": last_quantum_layer_gradient_norm.cpu(),
+        "quantum_layer_gradient_norms": quantum_layer_gradient_norms,
         "full_quantum_gradient_rms": full_quantum_gradient_rms,
+        "first_quantum_layer_gradient_rms": first_quantum_layer_gradient_rms,
         "last_quantum_layer_gradient_rms": last_quantum_layer_gradient_rms,
+        "quantum_layer_gradient_rms": quantum_layer_gradient_rms,
     }
 
 
@@ -773,11 +940,51 @@ def assemble_gradient_norms_payload(*, artifacts_root: str | Path) -> dict[str, 
                 raise ValueError(
                     f"Cached gradient diagnostic for depth={depth}, param_seed={param_seed} has mismatched image_size."
                 )
+            full_quantum_gradient_norm = task_payload.get("full_quantum_gradient_norm")
+            first_quantum_layer_gradient_norm = task_payload.get("first_quantum_layer_gradient_norm")
+            last_quantum_layer_gradient_norm = task_payload.get("last_quantum_layer_gradient_norm")
+            quantum_layer_gradient_norms = task_payload.get("quantum_layer_gradient_norms")
             full_quantum_gradient_rms = task_payload.get("full_quantum_gradient_rms")
+            first_quantum_layer_gradient_rms = task_payload.get("first_quantum_layer_gradient_rms")
             last_quantum_layer_gradient_rms = task_payload.get("last_quantum_layer_gradient_rms")
+            quantum_layer_gradient_rms = task_payload.get("quantum_layer_gradient_rms")
+            if not isinstance(full_quantum_gradient_norm, torch.Tensor) or full_quantum_gradient_norm.ndim != 0:
+                raise ValueError(
+                    "Cached gradient diagnostic is missing a scalar full_quantum_gradient_norm tensor."
+                )
+            if (
+                not isinstance(first_quantum_layer_gradient_norm, torch.Tensor)
+                or first_quantum_layer_gradient_norm.ndim != 0
+            ):
+                raise ValueError(
+                    "Cached gradient diagnostic is missing a scalar first_quantum_layer_gradient_norm tensor."
+                )
+            if (
+                not isinstance(last_quantum_layer_gradient_norm, torch.Tensor)
+                or last_quantum_layer_gradient_norm.ndim != 0
+            ):
+                raise ValueError(
+                    "Cached gradient diagnostic is missing a scalar last_quantum_layer_gradient_norm tensor."
+                )
+            if (
+                not isinstance(quantum_layer_gradient_norms, torch.Tensor)
+                or quantum_layer_gradient_norms.ndim != 1
+                or quantum_layer_gradient_norms.numel() != depth
+            ):
+                raise ValueError(
+                    "Cached gradient diagnostic is missing a length-depth "
+                    "quantum_layer_gradient_norms tensor."
+                )
             if not isinstance(full_quantum_gradient_rms, torch.Tensor) or full_quantum_gradient_rms.ndim != 0:
                 raise ValueError(
                     "Cached gradient diagnostic is missing a scalar full_quantum_gradient_rms tensor."
+                )
+            if (
+                not isinstance(first_quantum_layer_gradient_rms, torch.Tensor)
+                or first_quantum_layer_gradient_rms.ndim != 0
+            ):
+                raise ValueError(
+                    "Cached gradient diagnostic is missing a scalar first_quantum_layer_gradient_rms tensor."
                 )
             if (
                 not isinstance(last_quantum_layer_gradient_rms, torch.Tensor)
@@ -786,6 +993,15 @@ def assemble_gradient_norms_payload(*, artifacts_root: str | Path) -> dict[str, 
                 raise ValueError(
                     "Cached gradient diagnostic is missing a scalar last_quantum_layer_gradient_rms tensor."
                 )
+            if (
+                not isinstance(quantum_layer_gradient_rms, torch.Tensor)
+                or quantum_layer_gradient_rms.ndim != 1
+                or quantum_layer_gradient_rms.numel() != depth
+            ):
+                raise ValueError(
+                    "Cached gradient diagnostic is missing a length-depth "
+                    "quantum_layer_gradient_rms tensor."
+                )
             evaluations.append(
                 {
                     "depth": depth,
@@ -793,8 +1009,14 @@ def assemble_gradient_norms_payload(*, artifacts_root: str | Path) -> dict[str, 
                     "image_size": int(task_payload["image_size"]),
                     "layer_keys": list(task_payload["layer_keys"]),
                     "layer_labels": list(task_payload["layer_labels"]),
+                    "full_quantum_gradient_norm": full_quantum_gradient_norm.clone(),
+                    "first_quantum_layer_gradient_norm": first_quantum_layer_gradient_norm.clone(),
+                    "last_quantum_layer_gradient_norm": last_quantum_layer_gradient_norm.clone(),
+                    "quantum_layer_gradient_norms": quantum_layer_gradient_norms.clone(),
                     "full_quantum_gradient_rms": full_quantum_gradient_rms.clone(),
+                    "first_quantum_layer_gradient_rms": first_quantum_layer_gradient_rms.clone(),
                     "last_quantum_layer_gradient_rms": last_quantum_layer_gradient_rms.clone(),
+                    "quantum_layer_gradient_rms": quantum_layer_gradient_rms.clone(),
                 }
             )
 
