@@ -21,13 +21,13 @@ def test_format_trainable_parameter_stats_line_for_classical_cnn() -> None:
 def test_format_trainable_parameter_stats_line_for_pcsqcnn() -> None:
     model = PCSQCNN(image_size=4, num_classes=10, feature_qubits=1, quantum_layers=1)
 
-    assert format_trainable_parameter_stats_line(model) == "q48 c330 Q48 C330"
+    assert format_trainable_parameter_stats_line(model) == "q64 c330 Q64 C330"
 
 
 def test_format_trainable_parameter_stats_line_for_pcsqcnn_no_qft() -> None:
     model = PCSQCNNNoQFT(image_size=4, num_classes=10, feature_qubits=1, quantum_layers=1)
 
-    assert format_trainable_parameter_stats_line(model) == "q48 c330 Q48 C330"
+    assert format_trainable_parameter_stats_line(model) == "q64 c330 Q64 C330"
 
 
 def test_collect_trainable_layer_parameter_stats_skips_parameterless_layers() -> None:

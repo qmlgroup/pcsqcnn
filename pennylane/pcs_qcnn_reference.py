@@ -143,38 +143,37 @@ def _is_power_of_two(value: int) -> bool:
 
 
 def _feature_qubits_from_parameter_count(parameter_count: int) -> int:
-    """Infer the feature-register width from ``P = 4**f - 1``."""
+    """Infer the feature-register width from ``P = 4**f``."""
 
-    if parameter_count < 3:
+    if parameter_count < 1:
         raise ValueError(
-            "Expected Pauli coefficient axis length P = 4**f - 1 for some f >= 1, "
+            "Expected Pauli coefficient axis length P = 4**f for some f >= 0, "
             f"got P={parameter_count}."
         )
 
-    reduced = parameter_count + 1
+    reduced = parameter_count
     qubits = 0
     while reduced % 4 == 0:
         reduced //= 4
         qubits += 1
     if reduced != 1:
         raise ValueError(
-            "Expected Pauli coefficient axis length P = 4**f - 1 for some f >= 1, "
+            "Expected Pauli coefficient axis length P = 4**f for some f >= 0, "
             f"got P={parameter_count}."
         )
     return qubits
 
 
 def _pauli_basis(num_qubits: int) -> np.ndarray:
-    """Build the reduced Pauli basis in Torch-compatible lexicographic order."""
+    """Build the full Pauli basis in Torch-compatible lexicographic order."""
 
-    if num_qubits < 1:
-        raise ValueError(f"num_qubits must be at least 1, got {num_qubits}.")
+    if num_qubits < 0:
+        raise ValueError(f"num_qubits must be nonnegative, got {num_qubits}.")
+    if num_qubits == 0:
+        return np.ones((1, 1, 1), dtype=np.complex128)
 
     basis = []
     for labels in product(range(4), repeat=num_qubits):
-        if all(label == 0 for label in labels):
-            continue
-
         matrix = _PAULI_SINGLE_QUBIT[labels[0]]
         for label in labels[1:]:
             matrix = np.kron(matrix, _PAULI_SINGLE_QUBIT[label])
@@ -784,7 +783,7 @@ class PennyLanePCSQCNN:
                         2 ** y_condition_bits_to_use,
                         x_active_dim,
                         y_active_dim,
-                        4 ** self.feature_qubits - 1,
+                        4 ** self.feature_qubits,
                     ),
                     x_active_wires=tuple(active_x_wires),
                     y_active_wires=tuple(active_y_wires),

@@ -147,8 +147,8 @@ def test_encoder_is_vmap_compatible() -> None:
 
 def test_pauli_coefficients_to_unitary_preserves_leading_axes_elementwise() -> None:
     angle = torch.tensor(0.25, dtype=torch.float64)
-    params = torch.zeros((2, 3, 3), dtype=torch.float64)
-    params[1, 2, 0] = angle
+    params = torch.zeros((2, 3, 4), dtype=torch.float64)
+    params[1, 2, 1] = angle
 
     unitaries = pauli_coefficients_to_unitary(params)
 
@@ -162,39 +162,54 @@ def test_pauli_coefficients_to_unitary_preserves_leading_axes_elementwise() -> N
     assert torch.allclose(unitaries, expected)
 
 
+def test_pauli_coefficients_to_unitary_supports_zero_feature_qubits_as_phase() -> None:
+    angle = torch.tensor(0.42, dtype=torch.float64)
+    params = angle.reshape(1)
+
+    unitary = pauli_coefficients_to_unitary(params)
+
+    expected = torch.exp(1j * angle).reshape(1, 1)
+    assert unitary.shape == (1, 1)
+    assert unitary.dtype == torch.complex128
+    assert torch.allclose(unitary, expected)
+
+
 def test_materialized_pauli_basis_cache_reuses_same_device_dtype_tensor() -> None:
     first = _materialized_pauli_basis_matrices(1, device=torch.device("cpu"), dtype=torch.complex64)
     second = _materialized_pauli_basis_matrices(1, device=torch.device("cpu"), dtype=torch.complex64)
 
     assert first is second
+    assert first.shape == (4, 2, 2)
     assert first.dtype == torch.complex64
     assert first.device.type == "cpu"
 
 
-def test_pauli_coefficients_to_unitary_uses_xyz_order_for_one_qubit() -> None:
+def test_pauli_coefficients_to_unitary_uses_ixyz_order_for_one_qubit() -> None:
     angle = torch.tensor(0.37, dtype=torch.float64)
-    params = torch.eye(3, dtype=torch.float64) * angle
+    params = torch.eye(4, dtype=torch.float64) * angle
 
     unitaries = pauli_coefficients_to_unitary(params)
 
-    eye = torch.eye(2, dtype=torch.complex128).unsqueeze(0)
+    eye = torch.eye(2, dtype=torch.complex128)
     basis = torch.tensor(
         [
+            [[1.0 + 0.0j, 0.0 + 0.0j], [0.0 + 0.0j, 1.0 + 0.0j]],
             [[0.0 + 0.0j, 1.0 + 0.0j], [1.0 + 0.0j, 0.0 + 0.0j]],
             [[0.0 + 0.0j, 0.0 - 1.0j], [0.0 + 1.0j, 0.0 + 0.0j]],
             [[1.0 + 0.0j, 0.0 + 0.0j], [0.0 + 0.0j, -1.0 + 0.0j]],
         ],
         dtype=torch.complex128,
     )
-    expected = torch.cos(angle) * eye + 1j * torch.sin(angle) * basis
+    expected = torch.cos(angle) * eye.unsqueeze(0) + 1j * torch.sin(angle) * basis
+    expected[0] = torch.exp(1j * angle) * eye
 
-    assert unitaries.shape == (3, 2, 2)
+    assert unitaries.shape == (4, 2, 2)
     assert torch.allclose(unitaries, expected)
 
 
 def test_pauli_coefficients_to_unitary_returns_batched_unitaries() -> None:
     torch.manual_seed(0)
-    params = torch.randn((2, 3, 15), dtype=torch.float32)
+    params = torch.randn((2, 3, 16), dtype=torch.float32)
 
     unitaries = pauli_coefficients_to_unitary(params)
     gram = unitaries @ unitaries.conj().transpose(-1, -2)
@@ -206,7 +221,7 @@ def test_pauli_coefficients_to_unitary_returns_batched_unitaries() -> None:
 
 
 def test_pauli_coefficients_to_unitary_supports_backpropagation() -> None:
-    params = torch.randn((2, 15), dtype=torch.float64, requires_grad=True)
+    params = torch.randn((2, 16), dtype=torch.float64, requires_grad=True)
 
     unitaries = pauli_coefficients_to_unitary(params)
     loss = unitaries.real.sum() + unitaries.imag.sum()
@@ -217,9 +232,10 @@ def test_pauli_coefficients_to_unitary_supports_backpropagation() -> None:
     assert torch.count_nonzero(params.grad.abs()) > 0
 
 
-def test_pauli_coefficients_to_unitary_rejects_invalid_parameter_count() -> None:
-    with pytest.raises(ValueError, match=r"4\*\*f - 1"):
-        pauli_coefficients_to_unitary(torch.zeros((2, 5), dtype=torch.float32))
+@pytest.mark.parametrize("parameter_count", [0, 3, 5, 15])
+def test_pauli_coefficients_to_unitary_rejects_invalid_parameter_count(parameter_count: int) -> None:
+    with pytest.raises(ValueError, match=r"4\*\*f"):
+        pauli_coefficients_to_unitary(torch.zeros((2, parameter_count), dtype=torch.float32))
 
 
 @pytest.mark.parametrize(
@@ -263,7 +279,7 @@ def test_fourier_helpers_only_transform_active_index_axes() -> None:
 def test_apply_unitary_to_active_axis_roundtrips_with_adjoint() -> None:
     torch.manual_seed(0)
     state = torch.randn((2, 4, 3, 2, 5, 2), dtype=torch.complex128)
-    params = torch.randn(15, dtype=torch.float64)
+    params = torch.randn(16, dtype=torch.float64)
     unitary = pauli_coefficients_to_unitary(params)
 
     transformed = _apply_unitary_to_active_axis_1d(state, unitary, active_axis=1)
@@ -399,6 +415,23 @@ def test_mode_multiplexer_acts_as_identity_when_block_parameters_are_zero() -> N
 
     assert transformed.shape == state.shape
     assert torch.allclose(transformed, state)
+
+
+def test_mode_multiplexer_supports_zero_feature_qubits_as_mode_phases() -> None:
+    layout = RegisterLayout2D(image_size=2, feature_qubits=0)
+    multiplexer = make_multiplexer(layout, dtype=torch.float64)
+    params = torch.zeros_like(multiplexer.block_parameters)
+    params[0, 0, 1, 0, 0] = 0.3
+    with torch.no_grad():
+        multiplexer.block_parameters.copy_(params)
+    state = torch.ones(layout.state_shape(batch_size=1), dtype=torch.complex128)
+
+    transformed = multiplexer(state)
+
+    expected = state.clone()
+    expected[0, 1, 0, 0, 0, 0] *= torch.exp(torch.tensor(0.3j, dtype=torch.complex128))
+    assert transformed.shape == state.shape
+    assert torch.allclose(transformed, expected)
 
 
 def test_mode_multiplexer_randomly_initializes_block_parameters_by_default() -> None:

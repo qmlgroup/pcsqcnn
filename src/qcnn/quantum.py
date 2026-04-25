@@ -96,27 +96,27 @@ def _validate_brightness_range(brightness_range: tuple[float, float]) -> tuple[f
 
 
 def _feature_qubits_from_pauli_parameter_count(parameter_count: int) -> int:
-    """Infer the feature-register width from ``P = 4**f - 1``.
+    """Infer the feature-register width from ``P = 4**f``.
 
     Args:
         parameter_count: Length of the trailing Pauli-coefficient axis.
 
     Returns:
-        The unique integer ``f >= 1`` such that ``parameter_count = 4**f - 1``.
+        The unique integer ``f >= 0`` such that ``parameter_count = 4**f``.
 
     Raises:
-        ValueError: If ``parameter_count`` does not match the reduced Pauli
-            basis size for any positive integer number of qubits.
+        ValueError: If ``parameter_count`` does not match the full Pauli
+            basis size for any nonnegative integer number of qubits.
     """
 
-    if parameter_count < 3:
+    if parameter_count < 1:
         raise ValueError(
             "pauli_coefficients_to_unitary expects shape [..., P] with "
-            "P = 4**f - 1 for some integer f >= 1, "
+            "P = 4**f for some integer f >= 0, "
             f"got P={parameter_count}."
         )
 
-    reduced = parameter_count + 1
+    reduced = parameter_count
     num_qubits = 0
     while reduced % 4 == 0:
         reduced //= 4
@@ -126,26 +126,26 @@ def _feature_qubits_from_pauli_parameter_count(parameter_count: int) -> int:
 
     raise ValueError(
         "pauli_coefficients_to_unitary expects shape [..., P] with "
-        "P = 4**f - 1 for some integer f >= 1, "
+        "P = 4**f for some integer f >= 0, "
         f"got P={parameter_count}."
     )
 
 
 @lru_cache(maxsize=None)
 def _pauli_basis_matrices(num_qubits: int) -> torch.Tensor:
-    """Build the reduced multi-qubit Pauli basis in lexicographic order.
+    """Build the full multi-qubit Pauli basis in lexicographic order.
 
     Args:
         num_qubits: Number of feature-register qubits.
 
     Returns:
-        A complex tensor of shape ``[4**num_qubits - 1, 2**num_qubits, 2**num_qubits]``.
+        A complex tensor of shape ``[4**num_qubits, 2**num_qubits, 2**num_qubits]``.
         The basis is ordered lexicographically over the single-qubit labels
-        ``(I, X, Y, Z)`` with MSB-left convention and the all-identity string
-        omitted.
+        ``(I, X, Y, Z)`` with MSB-left convention, including the all-identity
+        string.
 
     Raises:
-        ValueError: If ``num_qubits < 1``.
+        ValueError: If ``num_qubits < 0``.
 
     Notes:
         The basis is cached with ``functools.lru_cache`` because it is reused by
@@ -153,14 +153,13 @@ def _pauli_basis_matrices(num_qubits: int) -> torch.Tensor:
         feature qubits.
     """
 
-    if num_qubits < 1:
-        raise ValueError(f"num_qubits must be at least 1, got {num_qubits}.")
+    if num_qubits < 0:
+        raise ValueError(f"num_qubits must be nonnegative, got {num_qubits}.")
+    if num_qubits == 0:
+        return torch.ones((1, 1, 1), dtype=torch.complex128)
 
     basis: list[torch.Tensor] = []
     for labels in product(range(4), repeat=num_qubits):
-        if all(label == 0 for label in labels):
-            continue
-
         matrix = _PAULI_SINGLE_QUBIT[labels[0]]
         for label in labels[1:]:
             matrix = torch.kron(matrix, _PAULI_SINGLE_QUBIT[label])
@@ -175,7 +174,7 @@ def _materialized_pauli_basis_matrices(
     device: torch.device,
     dtype: torch.dtype,
 ) -> torch.Tensor:
-    """Return the reduced Pauli basis cached on a specific device and dtype.
+    """Return the full Pauli basis cached on a specific device and dtype.
 
     Args:
         num_qubits: Number of feature-register qubits.
@@ -183,8 +182,8 @@ def _materialized_pauli_basis_matrices(
         dtype: Target complex dtype for the returned basis tensor.
 
     Returns:
-        The reduced Pauli basis with shape
-        ``[4**num_qubits - 1, 2**num_qubits, 2**num_qubits]`` materialized on
+        The full Pauli basis with shape
+        ``[4**num_qubits, 2**num_qubits, 2**num_qubits]`` materialized on
         ``device`` with dtype ``dtype``.
 
     Notes:
@@ -206,13 +205,14 @@ def pauli_coefficients_to_unitary(params: torch.Tensor) -> torch.Tensor:
     """Exponentiate Pauli-basis coefficients into batched unitaries.
 
     Contract:
-        ``params`` must have shape ``[..., P]`` with ``P = 4**f - 1`` for some
-        integer ``f >= 1``. The last axis is ordered lexicographically over the
+        ``params`` must have shape ``[..., P]`` with ``P = 4**f`` for some
+        integer ``f >= 0``. The last axis is ordered lexicographically over the
         single-qubit labels ``(I, X, Y, Z)`` with MSB-left convention and the
-        all-identity string omitted; for ``f = 1`` this reduces to ``[X, Y, Z]``.
+        all-identity string included; for ``f = 1`` this reduces to
+        ``[I, X, Y, Z]``.
 
     Formula:
-        Let ``H(theta) = sum_alpha theta_alpha P_alpha`` over the reduced Pauli
+        Let ``H(theta) = sum_alpha theta_alpha P_alpha`` over the full Pauli
         basis. The returned block is
         ``U(theta) = exp(i * H(theta))``.
 
@@ -222,7 +222,7 @@ def pauli_coefficients_to_unitary(params: torch.Tensor) -> torch.Tensor:
 
     Raises:
         ValueError: If ``params`` is scalar, not floating-point, or the last
-            axis length is not of the form ``4**f - 1``.
+            axis length is not of the form ``4**f``.
 
     Notes:
         ``float32`` inputs produce ``complex64`` outputs and ``float64`` inputs
@@ -597,7 +597,7 @@ class ModeMultiplexer2D(nn.Module):
 
     Formula:
         The trainable parameters are real Pauli coefficients with shape
-        ``[2**k_x, 2**k_y, X, Y, 4**f - 1]``. They are converted into blocks via
+        ``[2**k_x, 2**k_y, X, Y, 4**f]``. They are converted into blocks via
         ``U = exp(i * sum_alpha theta_alpha P_alpha)`` and applied only on the
         feature axis.
 
@@ -656,7 +656,7 @@ class ModeMultiplexer2D(nn.Module):
         self.multiplexer_init_scale = float(multiplexer_init_scale)
         self.x_selected_condition_dim = 2 ** x_condition_qubits_to_use
         self.y_selected_condition_dim = 2 ** y_condition_qubits_to_use
-        pauli_parameter_count = 4 ** layout.feature_qubits - 1
+        pauli_parameter_count = 4 ** layout.feature_qubits
         self.block_parameters = nn.Parameter(
             torch.randn(
                 (

@@ -560,6 +560,14 @@ def test_pcsqcnn_rejects_invalid_quantum_layer_counts() -> None:
         PCSQCNN(image_size=4, num_classes=2, feature_qubits=1, quantum_layers=3)
 
 
+def test_full_image_models_reject_zero_feature_qubits() -> None:
+    with pytest.raises(ValueError, match="feature_qubits must be at least 1"):
+        PCSQCNN(image_size=4, num_classes=2, feature_qubits=0, quantum_layers=1)
+
+    with pytest.raises(ValueError, match="feature_qubits must be at least 1"):
+        PCSQCNNNoQFT(image_size=4, num_classes=2, feature_qubits=0, quantum_layers=1)
+
+
 def test_pcsqcnn_rejects_non_positive_multiplexer_init_scale() -> None:
     with pytest.raises(ValueError, match="multiplexer_init_scale must be positive"):
         PCSQCNN(image_size=4, num_classes=2, feature_qubits=1, quantum_layers=1, multiplexer_init_scale=0.0)

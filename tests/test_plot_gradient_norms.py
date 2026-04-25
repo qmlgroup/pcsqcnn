@@ -114,12 +114,6 @@ def test_summarize_gradient_norms_payload_builds_full_and_last_layer_series(tmp_
     assert series_list[1].summary.mean == pytest.approx([0.15, 0.2, 0.17])
 
 
-def test_compute_theorem_rms_lower_bound_matches_current_depth_scaling_defaults() -> None:
-    theorem_rms_lower_bound = plot_gradient_norms.compute_theorem_rms_lower_bound(build_fake_payload())
-
-    assert theorem_rms_lower_bound == pytest.approx(0.0004754536089454567)
-
-
 def test_plot_article_figure_s2a_uses_log_y_scale_by_default(tmp_path: Path) -> None:
     payload_path = (
         tmp_path
@@ -137,7 +131,10 @@ def test_plot_article_figure_s2a_uses_log_y_scale_by_default(tmp_path: Path) -> 
     legend = figure.axes[0].get_legend()
     assert legend is not None
     legend_labels = [text.get_text() for text in legend.get_texts()]
-    assert plot_gradient_norms.THEOREM_LOWER_BOUND_LABEL in legend_labels
+    assert legend_labels == [
+        "All quantum parameters",
+        "Last quantum layer",
+    ]
 
     plt.close(figure)
 

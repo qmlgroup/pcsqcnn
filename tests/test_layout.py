@@ -14,6 +14,13 @@ def test_register_layout_reports_expected_dimensions() -> None:
     assert layout.state_shape(batch_size=4) == (4, 8, 1, 8, 1, 8)
 
 
+def test_register_layout_allows_zero_feature_qubits_for_layer_level_phases() -> None:
+    layout = RegisterLayout2D(image_size=4, feature_qubits=0)
+
+    assert layout.feature_dim == 1
+    assert layout.state_shape(batch_size=2) == (2, 4, 1, 4, 1, 1)
+
+
 def test_move_active_x_qubit_to_condition_preserves_msb_left_order() -> None:
     layout = RegisterLayout2D(image_size=4, feature_qubits=1)
     state = torch.arange(1 * 4 * 1 * 4 * 1 * 2, dtype=torch.float32).reshape(1, 4, 1, 4, 1, 2)

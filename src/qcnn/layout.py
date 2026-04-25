@@ -57,7 +57,9 @@ class RegisterLayout2D:
 
     Args:
         image_size: Square image side length. Must be a positive power of two.
-        feature_qubits: Number of qubits in the feature register.
+        feature_qubits: Number of qubits in the feature register. Low-level
+            layouts allow zero feature qubits, giving a one-dimensional feature
+            register.
         x_condition_qubits: Number of x-index qubits already deferred into the
             explicit x-condition register.
         y_condition_qubits: Number of y-index qubits already deferred into the
@@ -84,8 +86,8 @@ class RegisterLayout2D:
     def __post_init__(self) -> None:
         if not is_power_of_two(self.image_size):
             raise ValueError(f"image_size must be a positive power of two, got {self.image_size}.")
-        if self.feature_qubits < 1:
-            raise ValueError(f"feature_qubits must be at least 1, got {self.feature_qubits}.")
+        if self.feature_qubits < 0:
+            raise ValueError(f"feature_qubits must be nonnegative, got {self.feature_qubits}.")
         if self.x_condition_qubits < 0 or self.y_condition_qubits < 0:
             raise ValueError("Condition-register qubit counts must be non-negative.")
         if self.x_condition_qubits > self.index_qubits_per_axis:

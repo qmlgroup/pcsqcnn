@@ -198,6 +198,8 @@ class PCSQCNN(nn.Module):
 
         if num_classes < 1:
             raise ValueError(f"num_classes must be positive, got {num_classes}.")
+        if feature_qubits < 1:
+            raise ValueError(f"feature_qubits must be at least 1, got {feature_qubits}.")
 
         self.layer_layouts = _build_layer_layouts(
             image_size=image_size,
@@ -368,6 +370,8 @@ class PCSQCNNNoQFT(nn.Module):
 
         if num_classes < 1:
             raise ValueError(f"num_classes must be positive, got {num_classes}.")
+        if feature_qubits < 1:
+            raise ValueError(f"feature_qubits must be at least 1, got {feature_qubits}.")
 
         self.layer_layouts = _build_layer_layouts(
             image_size=image_size,
@@ -408,7 +412,7 @@ class PCSQCNNNoQFT(nn.Module):
         r_unitary_buffer_names: list[str] = []
         r_adjoint_buffer_names: list[str] = []
         for layer_idx, layout in enumerate(self.layer_layouts):
-            parameter_count = layout.x_active_dim * layout.x_active_dim - 1
+            parameter_count = layout.x_active_dim * layout.x_active_dim
             coefficients = torch.randn(parameter_count, dtype=dtype)
             unitary = pauli_coefficients_to_unitary(coefficients).to(dtype=self.encoder.complex_dtype)
             adjoint = unitary.conj().transpose(-1, -2)

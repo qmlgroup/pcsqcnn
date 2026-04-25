@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
-import math
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -20,10 +19,6 @@ DEFAULT_ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "figs"
 DEFAULT_INPUT_DIRECTORY_NAME = "depth_scaling_gradient_norms"
 DEFAULT_PAYLOAD_FILENAME = "gradient_norms.pt"
-DEFAULT_THEOREM_EPSILON = 0.0
-DEFAULT_THEOREM_INDEX_DIMENSIONS = 2
-DEFAULT_THEOREM_NUM_CLASSES = 10
-THEOREM_LOWER_BOUND_LABEL = r"Theorem lower bound ($\varepsilon=0$)"
 
 
 @dataclass(frozen=True)
@@ -145,55 +140,6 @@ def summarize_gradient_norms_payload(
     )
 
 
-def resolve_default_linear_weight_variance(*, fan_in: int) -> float:
-    if fan_in < 1:
-        raise ValueError(f"fan_in must be positive, got {fan_in}.")
-    # torch.nn.Linear defaults to U(-1/sqrt(fan_in), 1/sqrt(fan_in)),
-    # whose variance equals 1 / (3 * fan_in).
-    return 1.0 / (3.0 * float(fan_in))
-
-
-def compute_theorem_rms_lower_bound(
-    payload: Mapping[str, Any],
-    *,
-    epsilon: float = DEFAULT_THEOREM_EPSILON,
-    index_dimensions: int = DEFAULT_THEOREM_INDEX_DIMENSIONS,
-    num_classes: int = DEFAULT_THEOREM_NUM_CLASSES,
-) -> float:
-    post_pooling_index_qubits = payload.get("post_pooling_index_qubits")
-    feature_qubits = payload.get("feature_qubits")
-
-    if not isinstance(post_pooling_index_qubits, int) or post_pooling_index_qubits < 0:
-        raise ValueError("gradient-norm payload must contain a non-negative integer 'post_pooling_index_qubits'.")
-    if not isinstance(feature_qubits, int) or feature_qubits < 1:
-        raise ValueError("gradient-norm payload must contain a positive integer 'feature_qubits'.")
-    if index_dimensions < 1:
-        raise ValueError(f"index_dimensions must be positive, got {index_dimensions}.")
-    if num_classes < 2:
-        raise ValueError(f"num_classes must be at least 2, got {num_classes}.")
-    if epsilon < 0.0:
-        raise ValueError(f"epsilon must be non-negative, got {epsilon}.")
-
-    d_idx = 2 ** (index_dimensions * post_pooling_index_qubits)
-    d_f = 2 ** feature_qubits
-    d_out = d_idx * d_f
-    sigma_w2 = resolve_default_linear_weight_variance(fan_in=d_out)
-    local_term = d_f / (2.0 * (d_f + 1.0) ** 2) - epsilon * (d_f + 1.0 / (2.0 * (d_f + 1.0)))
-    if local_term <= 0.0:
-        raise ValueError(
-            "The chosen theorem epsilon does not yield a positive lower bound "
-            f"for D_f={d_f}: local_term={local_term}."
-        )
-
-    squared_lower_bound = (
-        (sigma_w2 / d_out)
-        * (1.0 - 1.0 / num_classes)
-        * (1.0 / (d_idx**2 * 2**index_dimensions))
-        * local_term
-    )
-    return math.sqrt(squared_lower_bound)
-
-
 def plot_article_figure_s2a(
     *,
     payload_path: str | Path,
@@ -203,7 +149,6 @@ def plot_article_figure_s2a(
     plt = _require_matplotlib()
     payload = load_gradient_norms_payload(payload_path)
     series_list = _summarize_gradient_norms_payload_mapping(payload, expected_depths=None)
-    theorem_rms_lower_bound = compute_theorem_rms_lower_bound(payload)
 
     figure, ax = plt.subplots(figsize=figsize)
     figure.patch.set_facecolor("white")
@@ -221,15 +166,6 @@ def plot_article_figure_s2a(
             label=series.label,
             band_alpha=0.16,
         )
-
-    ax.axhline(
-        theorem_rms_lower_bound,
-        color="black",
-        linewidth=1.25,
-        linestyle="--",
-        alpha=0.9,
-        label=THEOREM_LOWER_BOUND_LABEL,
-    )
 
     ax.set_xlabel("Quantum depth $Q$")
     ax.set_ylabel("Initialization RMS gradient norm")
