@@ -329,7 +329,7 @@ def test_pcsqcnn_passes_brightness_range_to_internal_encoder() -> None:
     assert model.brightness_range == (-0.5, 0.5)
     assert model.encoder.brightness_range == (-0.5, 0.5)
     messages = [str(warning.message) for warning in caught]
-    assert any("brightness_range deviates" in message for message in messages)
+    assert not any("brightness_range deviates" in message for message in messages)
     assert any("1/sqrt(XY)" in message for message in messages)
 
 
@@ -346,7 +346,7 @@ def test_pcsqcnn_no_qft_passes_brightness_range_to_internal_encoder() -> None:
     assert model.brightness_range == (-0.5, 0.5)
     assert model.encoder.brightness_range == (-0.5, 0.5)
     messages = [str(warning.message) for warning in caught]
-    assert any("brightness_range deviates" in message for message in messages)
+    assert not any("brightness_range deviates" in message for message in messages)
     assert any("1/sqrt(XY)" in message for message in messages)
 
 

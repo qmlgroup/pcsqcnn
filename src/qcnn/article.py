@@ -1,4 +1,4 @@
-"""Article-alignment constants and warning helpers for ``qcnn``.
+"""Article-alignment constants and inspection helpers for ``qcnn``.
 
 The module centralizes the article-aligned defaults used across normalized data
 preparation and encoding:
@@ -12,9 +12,10 @@ It also exposes the documented FRQI mismatch message used by the encoder:
 normalization factor, so encoded sample norms are ``sqrt(XY)`` rather than
 ``1``.
 
-The helpers in this module do not mutate model state. They only compute and/or
-emit warnings describing how a chosen configuration differs from the current
-article-aligned defaults.
+The helpers in this module do not mutate model state. They compute how a chosen
+configuration differs from the current article-aligned defaults. Runtime
+warnings for parameter-value deviations are intentionally suppressed so local
+experiments can vary those values without noisy output.
 """
 
 from __future__ import annotations
@@ -62,8 +63,8 @@ def article_alignment_warnings(
 
     Notes:
         The helper is pure: it only builds messages and never emits warnings on
-        its own. ``warn_for_article_alignment`` wraps this function and performs
-        the actual ``warnings.warn(...)`` calls.
+        its own. ``warn_for_article_alignment`` returns the same alignment
+        messages for programmatic inspection, but does not emit them at runtime.
     """
 
     messages: list[str] = []
@@ -116,7 +117,7 @@ def warn_for_article_alignment(
     include_encoder_mismatch: bool = False,
     stacklevel: int = 2,
 ) -> tuple[str, ...]:
-    """Emit runtime warnings for documented deviations from the article.
+    """Return documented deviations from article defaults.
 
     Args:
         image_size: Optional image side length to compare against the
@@ -135,14 +136,14 @@ def warn_for_article_alignment(
             warning.
 
     Returns:
-        The exact tuple of messages that was emitted. This matches the return
-        value of ``article_alignment_warnings(...)`` plus the optional encoder
+        The tuple of article-alignment messages plus the optional encoder
         mismatch message when requested.
 
     Notes:
-        The function is intentionally side-effectful: it emits ``UserWarning``
-        messages and also returns them so callers can test or log the exact set
-        of deviations.
+        Parameter-value deviations from article defaults are no longer emitted
+        as runtime warnings. The only remaining emitted warning is the optional
+        encoder-normalization mismatch, because it documents a behavioral
+        convention of the FRQI-like encoder rather than a chosen hyperparameter.
     """
 
     messages = list(
@@ -157,8 +158,6 @@ def warn_for_article_alignment(
 
     if include_encoder_mismatch:
         messages.append(ENCODER_NORMALIZATION_MISMATCH)
-
-    for message in messages:
-        warnings.warn(message, UserWarning, stacklevel=stacklevel)
+        warnings.warn(ENCODER_NORMALIZATION_MISMATCH, UserWarning, stacklevel=stacklevel)
 
     return tuple(messages)

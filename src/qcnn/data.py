@@ -506,10 +506,10 @@ def prepare_mnist_splits(
         kept in full when ``samples_per_class`` is ``None``.
 
     Notes:
-        The function emits article-alignment warnings when ``image_size``,
-        ``samples_per_class``, or the optional translation pipeline deviate
-        from the article-aligned defaults. The article-aligned encoder angle
-        range is configured later in ``FrqiEncoder2D`` / ``PCSQCNN``.
+        Article-alignment deviations in ``image_size``, ``samples_per_class``,
+        or the optional translation pipeline are accepted without runtime
+        warnings. The article-aligned encoder angle range is configured later in
+        ``FrqiEncoder2D`` / ``PCSQCNN``.
     """
 
     _validate_image_size(image_size)

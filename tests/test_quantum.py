@@ -97,7 +97,7 @@ def test_encoder_maps_normalized_images_into_configured_angle_range() -> None:
     assert encoded.shape == (1, 2, 1, 2, 1, 2)
     assert torch.allclose(encoded, expected)
     messages = [str(warning.message) for warning in caught]
-    assert any("brightness_range deviates" in message for message in messages)
+    assert not any("brightness_range deviates" in message for message in messages)
     assert any("1/sqrt(XY)" in message for message in messages)
 
 

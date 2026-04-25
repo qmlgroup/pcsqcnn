@@ -32,23 +32,21 @@ TEST_LABELS = torch.tensor([0, 1, 2, 0, 1, 2], dtype=torch.long)
 def test_prepare_mnist_splits_is_seeded_and_balanced(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(data_module, "MNIST", FakeMNIST)
 
-    with pytest.warns(UserWarning):
-        first = prepare_mnist_splits(
-            root="unused",
-            samples_per_class=2,
-            image_size=4,
-            seed=7,
-            download=False,
-        )
+    first = prepare_mnist_splits(
+        root="unused",
+        samples_per_class=2,
+        image_size=4,
+        seed=7,
+        download=False,
+    )
 
-    with pytest.warns(UserWarning):
-        second = prepare_mnist_splits(
-            root="unused",
-            samples_per_class=2,
-            image_size=4,
-            seed=7,
-            download=False,
-        )
+    second = prepare_mnist_splits(
+        root="unused",
+        samples_per_class=2,
+        image_size=4,
+        seed=7,
+        download=False,
+    )
 
     assert torch.equal(first.train.images, second.train.images)
     assert torch.equal(first.train.labels, second.train.labels)
@@ -58,14 +56,13 @@ def test_prepare_mnist_splits_is_seeded_and_balanced(monkeypatch: pytest.MonkeyP
 def test_prepare_mnist_splits_keeps_standard_test_split_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(data_module, "MNIST", FakeMNIST)
 
-    with pytest.warns(UserWarning):
-        splits = prepare_mnist_splits(
-            root="unused",
-            samples_per_class=2,
-            image_size=4,
-            seed=3,
-            download=False,
-        )
+    splits = prepare_mnist_splits(
+        root="unused",
+        samples_per_class=2,
+        image_size=4,
+        seed=3,
+        download=False,
+    )
 
     assert len(splits.test) == len(TEST_LABELS)
     assert torch.equal(splits.test.labels, TEST_LABELS)
@@ -74,14 +71,13 @@ def test_prepare_mnist_splits_keeps_standard_test_split_unchanged(monkeypatch: p
 def test_prepare_mnist_splits_attaches_dataset_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(data_module, "MNIST", FakeMNIST)
 
-    with pytest.warns(UserWarning):
-        splits = prepare_mnist_splits(
-            root="unused",
-            samples_per_class=2,
-            image_size=4,
-            seed=11,
-            download=False,
-        )
+    splits = prepare_mnist_splits(
+        root="unused",
+        samples_per_class=2,
+        image_size=4,
+        seed=11,
+        download=False,
+    )
 
     assert splits.train.metadata == {
         "dataset_name": "MNIST",
@@ -121,9 +117,7 @@ def test_prepare_mnist_splits_with_none_keeps_full_train_split_and_metadata(
             download=False,
         )
 
-    assert len(caught) == 1
-    assert "image_size deviates" in str(caught[0].message)
-    assert "samples_per_class" not in str(caught[0].message)
+    assert caught == []
     assert len(splits.train) == len(TRAIN_LABELS)
     assert torch.equal(splits.train.labels, TRAIN_LABELS)
     assert torch.allclose(splits.train.images, TRAIN_IMAGES.to(dtype=torch.float32) / 255.0)
@@ -143,23 +137,21 @@ def test_prepare_mnist_splits_with_none_keeps_full_train_split_and_metadata(
 def test_prepare_mnist_splits_with_none_ignores_seed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(data_module, "MNIST", FakeMNIST)
 
-    with pytest.warns(UserWarning, match="image_size deviates"):
-        first = prepare_mnist_splits(
-            root="unused",
-            samples_per_class=None,
-            image_size=4,
-            seed=1,
-            download=False,
-        )
+    first = prepare_mnist_splits(
+        root="unused",
+        samples_per_class=None,
+        image_size=4,
+        seed=1,
+        download=False,
+    )
 
-    with pytest.warns(UserWarning, match="image_size deviates"):
-        second = prepare_mnist_splits(
-            root="unused",
-            samples_per_class=None,
-            image_size=4,
-            seed=9,
-            download=False,
-        )
+    second = prepare_mnist_splits(
+        root="unused",
+        samples_per_class=None,
+        image_size=4,
+        seed=9,
+        download=False,
+    )
 
     assert torch.equal(first.train.images, second.train.images)
     assert torch.equal(first.train.labels, second.train.labels)
@@ -269,12 +261,13 @@ def test_prepare_mnist_splits_translations_are_seeded_for_train_and_test() -> No
     assert not torch.equal(first.test.images, third.test.images)
 
 
-def test_prepare_mnist_splits_translation_pipeline_warns_about_article_alignment(
+def test_prepare_mnist_splits_translation_pipeline_does_not_warn_about_article_alignment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(data_module, "MNIST", FakeMNIST)
 
-    with pytest.warns(UserWarning, match="translation preprocessing deviates"):
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
         prepare_mnist_splits(
             root="unused",
             samples_per_class=None,
@@ -284,6 +277,7 @@ def test_prepare_mnist_splits_translation_pipeline_warns_about_article_alignment
             seed=0,
             download=False,
         )
+    assert caught == []
 
 
 @pytest.mark.parametrize(
