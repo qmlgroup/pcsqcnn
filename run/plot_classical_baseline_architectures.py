@@ -10,13 +10,16 @@ import torch
 from torch import nn
 
 try:
-    from qcnn import ClassicalCNN, ClassicalMLP
+    from qcnn import ClassicalCNN, ClassicalMLP, configure_matplotlib_pdf_fonts
     from qcnn.article_training import build_figure_2_model_spec
     from qcnn.model_spec import ModelSpec, instantiate_model
 except ModuleNotFoundError:  # pragma: no cover - enables geometry-only local testing.
     ClassicalCNN = nn.Module
     ClassicalMLP = nn.Module
     ModelSpec = Any
+
+    def configure_matplotlib_pdf_fonts(matplotlib_module: Any | None = None) -> None:
+        return None
 
     def _missing_qcnn(*args, **kwargs):
         raise ModuleNotFoundError(
@@ -1286,6 +1289,9 @@ class ArchitectureDiagramRenderer:
 
 def _require_matplotlib():
     try:
+        import matplotlib
+
+        configure_matplotlib_pdf_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover - import failure depends on env.
         raise ImportError(

@@ -10,6 +10,7 @@ import warnings
 from qcnn import (
     ARTICLE_PANEL_FIGSIZE,
     TemporalStatisticSummary,
+    configure_matplotlib_pdf_fonts,
     load_saved_training_histories,
     plot_temporal_summary,
     summarize_temporal_samples,
@@ -40,6 +41,9 @@ class ImageSizeSweepSeries:
 
 def _require_matplotlib():
     try:
+        import matplotlib
+
+        configure_matplotlib_pdf_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(

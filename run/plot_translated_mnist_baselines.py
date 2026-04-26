@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, TypedDict, Sequence
 
 from qcnn import (
     ARTICLE_PANEL_FIGSIZE,
+    configure_matplotlib_pdf_fonts,
     load_saved_parameter_stats_line,
     load_saved_training_histories,
     plot_temporal_summary,
@@ -50,6 +51,9 @@ class _Figure2SeriesConfig(TypedDict):
 
 def _require_matplotlib():
     try:
+        import matplotlib
+
+        configure_matplotlib_pdf_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(

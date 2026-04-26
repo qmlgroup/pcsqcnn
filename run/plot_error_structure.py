@@ -7,7 +7,7 @@ from typing import Any, Mapping, Sequence
 
 import torch
 
-from qcnn import ARTICLE_PANEL_FIGSIZE, ErrorAnalysisPayload
+from qcnn import ARTICLE_PANEL_FIGSIZE, ErrorAnalysisPayload, configure_matplotlib_pdf_fonts
 from qcnn.article_figures import load_saved_run_seeds, resolve_saved_run_seed
 from qcnn.visualization import (
     DEFAULT_ERROR_ANALYSIS_GRID_SHAPE,
@@ -78,6 +78,9 @@ def build_error_structure_output_path(
 
 def _require_matplotlib():
     try:
+        import matplotlib
+
+        configure_matplotlib_pdf_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(

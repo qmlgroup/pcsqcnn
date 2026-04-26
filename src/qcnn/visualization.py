@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
+from qcnn.matplotlib_config import configure_matplotlib_pdf_fonts
 from qcnn.model import ImageClassifierRunner, TrainingHistory
 
 if TYPE_CHECKING:
@@ -110,6 +111,9 @@ class _ErrorAnalysisLabelStyle:
 
 def _require_matplotlib():
     try:
+        import matplotlib
+
+        configure_matplotlib_pdf_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(

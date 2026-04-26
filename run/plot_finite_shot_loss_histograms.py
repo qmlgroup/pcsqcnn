@@ -8,7 +8,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import torch
 
-from qcnn import ARTICLE_PANEL_FIGSIZE
+from qcnn import ARTICLE_PANEL_FIGSIZE, configure_matplotlib_pdf_fonts
 from qcnn.article_training import build_canonical_reference_run_directory_name
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -64,6 +64,9 @@ class FiniteShotLossSamplingHistogramLayer:
 
 def _require_matplotlib():
     try:
+        import matplotlib
+
+        configure_matplotlib_pdf_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(

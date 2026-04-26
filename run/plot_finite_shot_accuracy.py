@@ -10,6 +10,7 @@ import torch
 from qcnn import (
     ARTICLE_PANEL_FIGSIZE,
     TemporalStatisticSummary,
+    configure_matplotlib_pdf_fonts,
     plot_temporal_summary,
     summarize_temporal_samples,
 )
@@ -57,6 +58,9 @@ class _ShotLabelBlockRow:
 
 def _require_matplotlib():
     try:
+        import matplotlib
+
+        configure_matplotlib_pdf_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(

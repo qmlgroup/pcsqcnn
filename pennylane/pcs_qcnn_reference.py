@@ -33,6 +33,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 from torchvision.datasets import MNIST
 
+from qcnn import configure_matplotlib_pdf_fonts
+
 _SUPPORTED_REAL_DTYPES = {
     "torch.float32": np.float32,
     "torch.float64": np.float64,
@@ -250,6 +252,9 @@ def _to_numpy_array(value: Any, *, dtype: np.dtype | None = None) -> np.ndarray:
 
 def _require_matplotlib():
     try:
+        import matplotlib
+
+        configure_matplotlib_pdf_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(

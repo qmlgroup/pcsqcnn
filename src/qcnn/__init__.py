@@ -40,6 +40,7 @@ from qcnn.layout import (
     is_power_of_two,
     move_active_qubit_to_condition,
 )
+from qcnn.matplotlib_config import configure_matplotlib_pdf_fonts
 from qcnn.model import EvaluationSummary, ImageClassifierRunner, TrainingHistory, accuracy_from_logits
 from qcnn.model_spec import ModelSpec
 from qcnn.quantum import (
@@ -117,6 +118,7 @@ __all__ = [
     "compute_histogram_shannon_entropy",
     "CrossEntropyLossCollector",
     "collect_error_analysis_payload",
+    "configure_matplotlib_pdf_fonts",
     "ENCODER_NORMALIZATION_MISMATCH",
     "ErrorAnalysisPayload",
     "EvaluationSummary",
