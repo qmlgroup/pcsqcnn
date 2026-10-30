@@ -6,9 +6,10 @@ cd "$SCRIPT_DIR"
 
 REBUILD_FLAG=
 PLOTS_ONLY=
+VERIFY=
 
 usage() {
-    printf 'Usage: sh build_all_figures.sh [--rebuild | --plots-only]\n' >&2
+    printf 'Usage: sh build_all_figures.sh [--rebuild | --plots-only | --verify]\n' >&2
 }
 
 case $# in
@@ -19,6 +20,9 @@ case $# in
             REBUILD_FLAG=--rebuild
         elif [ "$1" = "--plots-only" ]; then
             PLOTS_ONLY=1
+        elif [ "$1" = "--verify" ]; then
+            PLOTS_ONLY=1
+            VERIFY=1
         else
             usage
             exit 1
@@ -49,6 +53,11 @@ run_python_step() {
 }
 
 printf '==> Starting full figure build in %s\n' "$SCRIPT_DIR"
+
+if [ -n "$VERIFY" ]; then
+    run_step "Recompute and verify PCS translation diagnostics from final weights" \
+        uv run python run/verify_pcs_translation.py
+fi
 
 if [ -z "$PLOTS_ONLY" ]; then
 printf '==> Data and artifact generation\n'
@@ -91,5 +100,7 @@ run_step "Render common FRQI comparison" uv run python run/plot_frqi_comparison.
 run_step "Render PCS translation results" uv run python run/plot_pcs_translation.py --output-root results/pcs_translation_2026-10-25 --figures-dir figs
 run_step "Render MFA comparison" uv run python run/plot_mfa_pcs_comparison.py \
     --curves results/mfa_translated/comparison/comparison_learning_curves.csv --output figs/pcs_mfa_translated_comparison.pdf
+
+run_step "Render quantum diagrams and the cross illustration" uv run python run/render_paper_diagrams.py
 
 printf '==> Full figure build complete\n'

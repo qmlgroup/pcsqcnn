@@ -10,14 +10,17 @@ import numpy as np
 from benchmark_pcs_translation import MODELS, read_plain
 from evaluate_pcs_translation import summarize_arrays
 from evaluate_summed_translation import file_hash, write_json
+from pcs_translation_bundle import DEFAULT_BUNDLE, DEFAULT_CACHE, DEFAULT_WEIGHTS, reconstruct_arrays
 
 
-def verify(root, models, seeds):
+def verify(root, models, seeds, *, data_root=Path("data"), device="auto",
+           weights_root=DEFAULT_WEIGHTS, cache_root=DEFAULT_CACHE):
     root = Path(root)
     index = read_plain(root/"runs.json")
     checks = {"passed": False, "checked_utc": datetime.now(timezone.utc).isoformat(),
               "models": list(models), "seeds": list(seeds), "histories": [], "maps": [],
               "verifier_sha256": file_hash(Path(__file__))}
+    write_json(root/"verification.json", checks)
     dataset_hashes = set()
     for name in models:
         for seed in seeds:
@@ -55,7 +58,18 @@ def verify(root, models, seeds):
                     or direct["changed_labels_max"] != 0):
                 raise ValueError("Double-precision direct validation exceeds tolerances")
             arrays_path = output.parent/result["arrays_file"]
-            if file_hash(arrays_path) != result["arrays_sha256"]:
+            arrays_record = result
+            regenerated = not arrays_path.is_file()
+            if regenerated:
+                arrays_path, arrays_record = reconstruct_arrays(
+                    root, name, seed, result, data_root=data_root, device=device,
+                    weights=weights_root, cache=cache_root)
+                direct = arrays_record["direct_validation"]
+                if (not direct["passed"] or direct["normalization_linf_max"] >= 1e-10
+                        or direct["readout_l1_max"] >= 1e-10 or direct["logit_linf_max"] >= 1e-8
+                        or direct["changed_labels_max"] != 0):
+                    raise ValueError("Recomputed direct validation exceeds tolerances")
+            if file_hash(arrays_path) != arrays_record["arrays_sha256"]:
                 raise ValueError(f"Changed arrays: {arrays_path}")
             with np.load(arrays_path, allow_pickle=False) as arrays:
                 expected = 4 if MODELS[name][1] else 32
@@ -70,11 +84,17 @@ def verify(root, models, seeds):
                 if np.any(arrays["predictions"] > 9):
                     raise ValueError("Invalid predicted class")
                 recalculated = summarize_arrays(arrays["predictions"], arrays["labels"], q)
+            differences = {}
             for metric, values in recalculated.items():
+                differences[metric] = float(np.max(np.abs(np.asarray(values)-result["metrics"][metric])))
                 if not np.allclose(values, result["metrics"][metric], atol=1e-12, rtol=0):
-                    raise ValueError(f"Saved {metric} differs from arrays")
+                    raise ValueError(f"Published {metric} differs from arrays: max error {differences[metric]}")
+                if not np.allclose(values, arrays_record["metrics"][metric], atol=1e-12, rtol=0):
+                    raise ValueError(f"Recomputed {metric} differs from arrays")
             checks["maps"].append({"model": name, "seed": seed, "grid": [expected, expected],
-                                   "arrays_sha256": result["arrays_sha256"]})
+                                   "arrays_sha256": arrays_record["arrays_sha256"],
+                                   "source": "final checkpoint" if regenerated else "archived arrays",
+                                   "metric_max_abs_difference": differences})
     if len(dataset_hashes) != 1:
         raise ValueError("The models were evaluated on different centered test data")
     checks.update(passed=True, dataset_sha256=dataset_hashes.pop())
@@ -84,11 +104,21 @@ def verify(root, models, seeds):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, default=Path("artifacts/pcs_translation"))
+    parser.add_argument("--output-root", type=Path, default=DEFAULT_BUNDLE)
     parser.add_argument("--models", nargs="+", choices=tuple(MODELS), default=list(MODELS))
     parser.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
+    parser.add_argument("--data-root", type=Path, default=Path("data"))
+    parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    parser.add_argument("--weights-root", type=Path, default=DEFAULT_WEIGHTS)
+    parser.add_argument("--cache-root", type=Path, default=DEFAULT_CACHE)
+    parser.add_argument("--threads", type=int, default=4)
     args = parser.parse_args()
-    print(verify(args.output_root, args.models, args.seeds)["passed"])
+    if args.threads < 1:
+        parser.error("Threads must be positive")
+    import torch
+    torch.set_num_threads(args.threads)
+    print(verify(args.output_root, args.models, args.seeds, data_root=args.data_root,
+                 device=args.device, weights_root=args.weights_root, cache_root=args.cache_root)["passed"])
 
 
 if __name__ == "__main__":

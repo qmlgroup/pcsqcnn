@@ -26,10 +26,14 @@ def test_build_all_figures_shell_script_has_valid_sh_syntax():
     subprocess.run(["sh", "-n", str(BUILD_SCRIPT_PATH)], check=True)
 
 
+def is_render(command):
+    return "python run/plot_" in command or "python run/render_paper_diagrams.py" in command
+
+
 def test_plots_only_does_not_train_or_evaluate(tmp_path):
     commands = trace_commands(tmp_path, "--plots-only")
     assert commands
-    assert all("python run/plot_" in command for command in commands)
+    assert all(is_render(command) for command in commands)
     assert any("plot_frqi_comparison.py" in c for c in commands)
     assert any("plot_pcs_translation.py" in c for c in commands)
     assert any("plot_mfa_pcs_comparison.py" in c for c in commands)
@@ -44,10 +48,18 @@ def test_training_selects_the_published_translation_protocol(tmp_path):
     sp, = [c for c in commands if "prepare_sp_qcnn" in c]
     assert "--runs sp_qcnn_train8 --seed-count 2" in sp
     first_plot = next(i for i, c in enumerate(commands) if "python run/plot_" in c)
-    assert all("python run/plot_" in c for c in commands[first_plot:])
+    assert all(is_render(c) for c in commands[first_plot:])
 
 
 def test_rebuild_applies_only_to_preparation_and_evaluation(tmp_path):
     commands = trace_commands(tmp_path, "--rebuild")
     for command in commands:
-        assert ("--rebuild" in command) == ("python run/plot_" not in command)
+        assert ("--rebuild" in command) == (not is_render(command))
+
+
+def test_verify_reconstructs_before_rendering_without_training(tmp_path):
+    commands = trace_commands(tmp_path, "--verify")
+    assert commands[0] == "run python run/verify_pcs_translation.py"
+    assert all(is_render(command) for command in commands[1:])
+    assert any("render_paper_diagrams.py" in command for command in commands)
+    assert not any("--rebuild" in command for command in commands)

@@ -142,8 +142,9 @@ properties and are reported separately.
 - `status.json`: progress or a recorded failure; `benchmark.lock`: process lock.
 
 `plot` needs only `runs.json`, `records/`, and diagnostic JSON files; it does not
-load weights, require CUDA, or simulate a quantum circuit. `verify` additionally
-needs the NPZ arrays. `evaluate` needs the referenced weights and MNIST cache.
+load weights, require CUDA, or simulate a quantum circuit. `verify` uses archived arrays if present; otherwise it reconstructs them from
+the supplied final checkpoints and prepares MNIST automatically. `evaluate`
+operates on the training orchestrator's original checkpoints.
 
 ## Recorded results
 
@@ -154,8 +155,26 @@ contains all four variants and their stage histories. From this package root:
 uv run python run/plot_pcs_translation.py --output-root results/pcs_translation_2026-10-25 --figures-dir figs
 ```
 
-Bulk arrays are needed only for independent per-image verification;
-checkpoints are needed for new state simulation or continued training.
+The data archive includes twelve final inference checkpoints under
+`artifacts/pcs_translation_weights/`. Recompute the diagnostics and check every
+published map statistic without repeating training:
+
+```sh
+uv run python run/verify_pcs_translation.py
+# Or one model and seed:
+uv run python run/verify_pcs_translation.py --models local_full --seeds 0
+# Reconstruct, verify and render all paper figures:
+sh build_all_figures.sh --verify
+```
+
+The verifier prepares MNIST if necessary, selects GPU or CPU, reconstructs
+missing arrays and compares their statistics to the unchanged reference JSON.
+Arrays are cached in `artifacts/pcs_translation_recomputed/`; no array download
+or manual intermediate calculation is required. `--device`, `--data-root`,
+`--weights-root` and `--cache-root` override the defaults. The released weights
+contain architecture and model tensors, without optimizer or RNG state. They
+reproduce final-model inference; exact continuation of an interrupted training
+run requires its separate training-state checkpoint.
 
 The combined `pcs_readout_full.pdf` and `pcs_readout_summed.pdf` use six
 uniquely labeled panels: general layers in (a)-(c), radius-one layers in

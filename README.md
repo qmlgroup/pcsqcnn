@@ -23,17 +23,25 @@ Add `--extra mfa` for the MFA experiment or `--extra pennylane` for the
 reference backend. The implementation is MIT-licensed; dependencies retain
 their own licenses.
 
-## Reproduce figures
+## Reproduce all paper figures on CPU
 
-With the MNIST artifact inputs under `artifacts/`, run:
+Download `pcsqcnn-source.zip`, `pcsqcnn-plot-data.zip` and `SHA256SUMS`
+from the same [release](https://github.com/qmlgroup/pcsqcnn/releases).
+The [quick start](REPRODUCING.md#quick-start-all-figures-on-cpu) gives the
+complete checksum, extraction and installation commands. These two archives
+contain everything needed to render the main-text and supplementary figures;
+CUDA, the v2 archives, MNIST downloads and retraining are not required.
+
+After extracting the data archive at the package root and installing the
+Python and TeX dependencies, run:
 
 ```sh
 sh build_all_figures.sh --plots-only
-uv run python run/render_paper_diagrams.py
 ```
 
-The diagram command requires pdfLaTeX with TikZ, Quantikz, `standalone`,
-`braket`, Helvetica and `sansmath`.
+This also builds the quantum diagrams and Figure 1. Their TeX dependencies
+are pdfLaTeX with TikZ/PGF, Quantikz, `standalone`, `braket`, Helvetica and
+`sansmath`. The output is written to `figs/`.
 
 The paired main-text plots can also be rebuilt together, or individually with
 `--figure sweeps`, `--figure baselines`, or `--figure histograms`:
@@ -42,10 +50,11 @@ The paired main-text plots can also be rebuilt together, or individually with
 uv run python run/plot_main_panels.py --figure all
 ```
 
-The same entry point without `--plots-only` prepares the main MNIST and FRQI
-comparison inputs before rendering. Training for the PCS readout experiment,
-MFA and the cross-pattern illustration has separate commands in the guides
-below. Generated data and weights belong in `artifacts/`, and figures in `figs/`.
+The optional `--verify` mode first reconstructs PCS translation diagnostics
+from the supplied weights. Running the script without a mode starts the
+main MNIST and FRQI experiment workflow, which may require training.
+See [reproduction modes](REPRODUCING.md#reproduction-modes) before choosing
+these alternatives. Generated data and weights belong in `artifacts/`.
 
 ## Numerical results
 
@@ -79,19 +88,20 @@ inspection notebooks are in `notebooks/` and `pennylane/`.
 
 ## Artifact storage
 
-The [artifacts-v3 release](https://github.com/qmlgroup/pcsqcnn/releases/tag/artifacts-v3)
-contains the source snapshot, numerical data and SHA-256 checksums for this
-revision. All model implementations and training scripts are included;
-trained weights from the new experiments are not part of this release.
+The [release downloads](https://github.com/qmlgroup/pcsqcnn/releases) provide
+the source snapshot, a compact data archive and SHA-256 checksums. All model
+implementations and training scripts are included.
 
-Numerical records sufficient for all plots are supplied as a separate
-`pcsqcnn-plot-data.zip` archive, extracted at the package root to create
-`artifacts/`. The compact result bundles under `results/` are included in Git.
-The optional `pcsqcnn-translation-arrays.zip` supplies the per-image arrays
-used to verify the cyclic-translation statistics independently. Neither
-archive is needed for training from scratch. See [REPRODUCING.md](REPRODUCING.md)
-for extraction, checksums and the distinction between plotting, verification
-and rerunning an experiment.
+Extract `pcsqcnn-plot-data.zip` at the package root to create `artifacts/`.
+It contains the numerical records for all plots and twelve final PCS
+checkpoints for the translation study. Compact results under `results/` are
+included in Git. Per-image translation arrays are regenerated from these
+weights when needed instead of being distributed as a large download.
+
+`sh build_all_figures.sh --verify` reconstructs missing translation arrays,
+checks the reported statistics and renders all figures, without training.
+`--plots-only` renders directly from compact records. See
+[REPRODUCING.md](REPRODUCING.md) for installation and extraction.
 
 The earlier MNIST records and checkpoints remain available in the
 [`artifacts-v2` release](https://github.com/qmlgroup/pcsqcnn/releases/tag/artifacts-v2).

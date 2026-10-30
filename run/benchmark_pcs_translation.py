@@ -248,6 +248,9 @@ def main():
             if args.stage in ("plot", "verify"):
                 index = read_plain(args.output_root/"runs.json")
             else:
+                from torchvision.datasets import MNIST
+                for train in (True, False):
+                    MNIST(root=str(args.data_root), train=train, download=True)
                 index = resolve_runs(args, record, status)
             if args.stage in ("all", "evaluate"):
                 from evaluate_pcs_translation import evaluate_checkpoint
@@ -262,7 +265,8 @@ def main():
             if args.stage in ("all", "verify"):
                 from verify_pcs_translation import verify
                 status(status="verifying")
-                verify(args.output_root, args.models, args.seeds)
+                verify(args.output_root, args.models, args.seeds,
+                       data_root=args.data_root, device=args.device)
             if args.stage in ("all", "plot"):
                 from plot_pcs_translation import plot
                 status(status="plotting")

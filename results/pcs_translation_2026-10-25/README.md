@@ -30,13 +30,18 @@ From the package root, recreate figures without weights or CUDA:
 uv run python run/plot_pcs_translation.py --output-root results/pcs_translation_2026-10-25
 ```
 
-Figures and CSVs are written to `plots/`. For per-image verification, place
-the matching array files beside the diagnostic JSON files and run:
+Figures and CSVs are written to `plots/`. For independent per-image verification,
+extract the supplied data archive at the repository root and run:
 
 ```sh
-uv run python run/verify_pcs_translation.py --output-root results/pcs_translation_2026-10-25
+uv run python run/verify_pcs_translation.py
 ```
 
-Each JSON records its array SHA-256. Large arrays and weights are stored
-separately; plotting uses only the compact bundle. The complete reproduction
+The data archive supplies twelve final checkpoints, with model tensors and
+architecture only. The verifier prepares MNIST, reconstructs missing arrays
+from these weights, checks direct equivariance and compares the reconstructed
+statistics with the reference JSON. Generated arrays are cached separately under
+`artifacts/pcs_translation_recomputed/`; plotting uses only this compact bundle.
+Each JSON retains the original array SHA-256 for verification of older copies;
+recomputed arrays are checked numerically and carry their own hashes. The complete reproduction
 protocol is in [the benchmark guide](../../docs/pcs_translation.md).

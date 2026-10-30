@@ -142,7 +142,7 @@ def precision_audit(native_model, diagnostic_model, images, labels, arrays, *, b
             "method": "same 16 direct readouts and known coarse permutations in both precisions; no renormalization"}
 
 
-def evaluate_checkpoint(checkpoint, output, *, data_root, device="cuda", batch_size=1600):
+def evaluate_checkpoint(checkpoint, output, *, data_root, device="cuda", batch_size=1600, download=False):
     checkpoint, output = Path(checkpoint), Path(output)
     torch.set_float32_matmul_precision("highest")
     loaded = load_model_checkpoint(checkpoint, map_location=device)
@@ -152,7 +152,7 @@ def evaluate_checkpoint(checkpoint, output, *, data_root, device="cuda", batch_s
             or model.encoding != "frqi" or model.shot_budget is not None):
         raise ValueError("Expected exact FRQI PCS, 32x32, three layers, two feature qubits")
     test = prepare_mnist_splits(root=data_root, samples_per_class=1000, image_size=32,
-                               scaled_image_size=16, max_offset=0, seed=0, download=False).test
+                               scaled_image_size=16, max_offset=0, seed=0, download=download).test
     source_hashes = {name: file_hash(Path(__file__).with_name(name)) for name in
                      ("evaluate_pcs_translation.py", "evaluate_summed_translation.py")}
     source_root = Path(__file__).resolve().parents[1]
@@ -167,9 +167,12 @@ def evaluate_checkpoint(checkpoint, output, *, data_root, device="cuda", batch_s
         saved = json.loads(output.read_text())
         if saved["identity"] != identity:
             raise ValueError(f"Existing evaluation is incompatible: {output}; use a new output root")
-        if file_hash(output.parent/saved["arrays_file"]) != saved["arrays_sha256"]:
-            raise ValueError(f"Evaluation arrays were modified: {output}")
-        return saved
+        cached_arrays = output.parent/saved["arrays_file"]
+        if cached_arrays.exists():
+            if file_hash(cached_arrays) != saved["arrays_sha256"]:
+                raise ValueError(f"Evaluation arrays were modified: {output}")
+            return saved
+        # Arrays are disposable inference products; regenerate a missing cache.
     metrics, arrays, validation = translation_arrays(
         model, test.images.to(device=device, dtype=torch.float64), test.labels, batch_size=batch_size)
     native = load_model_checkpoint(checkpoint, map_location=device).model.eval()

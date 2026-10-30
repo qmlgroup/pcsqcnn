@@ -3,7 +3,7 @@
 Run all commands from this package root. Python 3.11+ and `uv` are required.
 
 ```sh
-uv sync --extra test --extra notebook
+uv sync --locked --extra test --extra notebook
 ```
 
 Add `--extra mfa` for MFA training and `--extra pennylane` for the PCS
@@ -13,32 +13,41 @@ the data expected by each plotter and [model definitions](INFO.md) for the API.
 
 ## Figure pipeline
 
+For all paper figures on CPU, follow the
+[archive quick start](REPRODUCING.md#quick-start-all-figures-on-cpu), then use:
+
 ```sh
 sh build_all_figures.sh --plots-only
-sh build_all_figures.sh
-sh build_all_figures.sh --rebuild
 ```
 
-The first command plots saved results. The second prepares the main MNIST
-and common FRQI comparison inputs before plotting; it does not force a rebuild
-of completed runs. Passing `--rebuild` forces every prep/evaluation step in
-that pipeline to recompute its outputs. Figures are written to `figs/`. The PCS translation renderer also keeps
-individual panels beside the compact results in
+This reads saved results and renders all numerical plots, quantum diagrams
+and Figure 1 into `figs/`. It does not train, perform inference, download
+MNIST or require CUDA or older artifact releases. The PCS translation
+renderer also writes individual panels under
 `results/pcs_translation_2026-10-25/plots/`.
 
-Render the quantum diagrams and Figure 1 from the bundled states:
+Other modes are optional alternatives:
+
+| Mode | Behavior |
+| --- | --- |
+| `--verify` | First reconstruct missing PCS translation arrays from supplied weights, prepare MNIST if needed, and verify the published statistics; then plot. No training. |
+| No option | Prepare the main MNIST and common-FRQI comparison inputs before plotting; completed runs are reused. Missing training outputs require training. |
+| `--rebuild` | Discard existing outputs of that workflow and recompute them, including training. |
+
+To render only the quantum diagrams and Figure 1:
 
 ```sh
 uv run python run/render_paper_diagrams.py
 ```
 
-This requires pdfLaTeX with TikZ, Quantikz, `standalone`, `braket`, Helvetica
-and `sansmath`; it does not train or load checkpoints. See
-[REPRODUCING.md](REPRODUCING.md) for the complete figure and data inventory.
+This requires pdfLaTeX with TikZ/PGF, Quantikz, `standalone`, `braket`, Helvetica
+and `sansmath`; it reads the bundled states without training or checkpoints.
+See [REPRODUCING.md](REPRODUCING.md) for the figure and data inventory.
 
 The pipeline uses recorded PCS-translation and MFA bundles for those plots.
 Their complete training/evaluation workflows and the Figure 1 illustration
-are independent commands, documented below.
+are independent commands, documented below. Add `--extra mfa` when installing
+the environment for MFA training.
 
 ## Main MNIST experiments
 
@@ -126,7 +135,16 @@ Use `--stage`, `--models` and `--seeds` for individual operations. The
 [protocol guide](docs/pcs_translation.md) specifies all stage checkpoints,
 precision settings, cyclic shifts and interpretation of the three metrics.
 
-Plot the compact recorded data without training:
+To re-evaluate the supplied final models, check the diagnostic statistics and
+avoid retraining:
+
+```sh
+uv run python run/verify_pcs_translation.py
+```
+
+Use `--models` and `--seeds` to select individual runs. Missing inference arrays
+are generated automatically from the packaged weights. Plot the compact
+recorded data without training:
 
 ```sh
 uv run python run/plot_pcs_translation.py --output-root results/pcs_translation_2026-10-25

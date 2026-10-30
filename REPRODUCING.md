@@ -1,69 +1,96 @@
 # Reproducing the paper
 
-Commands below run from the repository root. Install the locked environment
-with `uv sync --locked --extra notebook --extra test` (add `--extra mfa` for MFA).
-Rendering and numerical verification run on CPU. Training is a separate,
-much longer operation; CUDA is recommended.
+## Quick start: all figures on CPU
+
+The paired `pcsqcnn-source.zip` and `pcsqcnn-plot-data.zip` archives are
+sufficient for every main-text and supplementary figure. CUDA, older artifact
+releases, MNIST downloads and retraining are not required for this workflow.
+
+Install Python 3.11+, `uv`, and pdfLaTeX with TikZ/PGF, Quantikz, `standalone`,
+`braket`, Helvetica and `sansmath` (available in a full TeX Live installation).
+The commands below use a POSIX shell, `unzip` and `sha256sum`.
+
+Download both archives and `SHA256SUMS` from the same
+[release](https://github.com/qmlgroup/pcsqcnn/releases) into one directory.
+Starting in that directory, run:
+
+```sh
+sha256sum --check SHA256SUMS
+unzip pcsqcnn-source.zip
+cd pcsqcnn
+unzip ../pcsqcnn-plot-data.zip
+uv sync --locked --extra notebook --extra test
+sh build_all_figures.sh --plots-only
+```
+
+Both archive checksums must pass before extraction. On macOS, use
+`shasum -a 256 -c SHA256SUMS` in place of `sha256sum --check SHA256SUMS`.
+The source archive creates `pcsqcnn/`; the data archive creates `artifacts/`
+inside it. All subsequent commands run from this package root.
+
+The plotting command reads the bundled numerical records and saved states,
+and writes the figures to `figs/`, including architecture diagrams, Figure 1
+and the complete cross-model layers. Figure 1 uses the saved complex quantum
+states. The original multiplexer drawing is supplied as a vector PDF.
+No model training or inference is performed by `--plots-only`.
+
+## Reproduction modes
+
+Choose one mode; these commands are alternatives, not sequential steps.
+
+| Command | Work performed |
+| --- | --- |
+| `sh build_all_figures.sh --plots-only` | Render all figures from saved results on CPU. |
+| `sh build_all_figures.sh --verify` | Reconstruct and verify PCS translation diagnostics from final weights, then render all figures; no training. |
+| `sh build_all_figures.sh` | Run the main MNIST and common-FRQI experiment workflow, reusing completed runs where possible, then plot. Missing training outputs require training. |
+| `sh build_all_figures.sh --rebuild` | Discard existing outputs of that workflow and recompute them, including training. |
+
+The full PCS readout, MFA and cross-pattern training workflows are documented
+under [Recompute experiments](#recompute-experiments). They are separate from
+the quick plotting workflow.
 
 ## Data packages
 
-Download the required files from the
-[artifacts-v3 release](https://github.com/qmlgroup/pcsqcnn/releases/tag/artifacts-v3):
+`artifacts/` contains the original MNIST and common-FRQI plot inputs,
+complete per-seed histories, untuned address-QCS runs and the
+validation-search summary. `artifacts/INDEX.json` maps each renderer to its
+input files and hashes. Compact MFA, PCS-translation and cross-pattern
+results are already in `results/` in the source archive.
 
-- [Plot data](https://github.com/qmlgroup/pcsqcnn/releases/download/artifacts-v3/pcsqcnn-plot-data.zip)
-  for all recorded-result figures and comparison tables.
-- [Translation arrays](https://github.com/qmlgroup/pcsqcnn/releases/download/artifacts-v3/pcsqcnn-translation-arrays.zip)
-  for the optional independent per-image checks.
-- [SHA256SUMS](https://github.com/qmlgroup/pcsqcnn/releases/download/artifacts-v3/SHA256SUMS)
-  to verify the downloaded archives.
+`artifacts/pcs_translation_weights/` contains the twelve exact final PCS
+models used in the translation study, with their architecture and weights.
+Its index links the exported checkpoints to the original run hashes. These
+inference checkpoints omit optimizer state and intermediate training snapshots.
+The much larger per-image arrays are regenerated on demand into an ignored
+cache; they are not included in the data archive or needed for plotting.
 
-Use the code at tag `artifacts-v3`, or extract
-[pcsqcnn-source.zip](https://github.com/qmlgroup/pcsqcnn/releases/download/artifacts-v3/pcsqcnn-source.zip)
-and work inside its `pcsqcnn/` directory. Place the data archives and
-`SHA256SUMS` at that repository root, then verify and extract them:
+Other original MNIST checkpoints remain in
+[artifacts-v2](https://github.com/qmlgroup/pcsqcnn/releases/tag/artifacts-v2).
+They are optional historical data, not a dependency of this package's
+plotting or translation-verification workflows. The package does not include
+weights for the other comparison experiments: their figures and summary
+statistics use recorded results, whereas new inference requires separately
+available weights or training.
 
-```sh
-sha256sum --check --ignore-missing SHA256SUMS
-unzip pcsqcnn-plot-data.zip
-# Optional, for checking the translation statistics from per-image data:
-unzip pcsqcnn-translation-arrays.zip
-```
-
-`pcsqcnn-plot-data.zip` creates `artifacts/` with the numerical inputs for
-the original MNIST figures and the common-FRQI comparison. It includes complete
-per-seed histories, untuned address-QCS runs and the validation-search summary.
-It does not include model weights. `artifacts/INDEX.json` maps each renderer
-to its input files and their SHA-256 digests. Compact MFA, PCS-translation and
-cross-pattern results are already in `results/`.
-
-`pcsqcnn-translation-arrays.zip` adds twelve NPZ files beside the diagnostic
-JSON records in `results/pcs_translation_2026-10-25/diagnostics/`. These hold
-per-image predictions and feature probabilities, not trained weights.
-Archive checksums are in the accompanying `SHA256SUMS`; the diagnostic JSON
-files also record each NPZ checksum.
-
-The earlier [artifacts-v2 release](https://github.com/qmlgroup/pcsqcnn/releases/tag/artifacts-v2)
-contains checkpoints for the original MNIST experiments. The new plots do
-not require them. Re-evaluating a model on new images requires its weights
-or rerunning its training. Seeds and configuration records make reruns
-reproducible, but numerical libraries and devices can affect the fitted weights.
-The compact archives preserve the exact reported measurements.
-
-## All figures from recorded results
+## Optional: reconstruct translation diagnostics
 
 ```sh
-sh build_all_figures.sh --plots-only
-uv run python run/render_paper_diagrams.py
+sh build_all_figures.sh --verify
 ```
 
-The first command renders all numerical plots and the classical architecture
-diagrams. The second renders Figure 1, the complete cross-model layers and
-the quantum diagrams. It requires pdfLaTeX with TikZ/PGF, Quantikz, `standalone`,
-`braket`, Helvetica and `sansmath` (available in a full TeX Live installation).
-All paper assets are written to `figs/`. Quantum diagram sources are in
-`figsrc/`; the original multiplexer drawing is supplied as a vector PDF.
-Figure 1 is reconstructed from the saved complex states, not schematic
-feature maps or selected training reruns.
+This command verifies the training histories, reconstructs missing translation
+arrays from final weights, compares all map statistics with the published
+values, and renders the paper figures. It downloads MNIST if needed and
+selects CUDA when available, otherwise CPU. No training is started.
+The translation calculation took about three minutes on the experiment GPU;
+CPU execution can take longer. Generated arrays are cached under
+`artifacts/pcs_translation_recomputed/`, separately from the published results.
+Compatible cached results are reused; changing weights, implementation or
+runtime selects a different cache. Deleting the cache only requires inference
+again. CUDA/CPU and library differences can affect numerical results; the
+verification reports disagreements rather than overwriting the reference data.
+
+## Figure inputs and individual renderers
 
 | Paper figure or topic | Renderer (under `run/`) | Numerical input |
 | --- | --- | --- |
@@ -98,12 +125,17 @@ MFA is separate because its PCA/amplitude input differs from FRQI.
 
 The translation table and maps come from
 `results/pcs_translation_2026-10-25/summary.json` and `diagnostics/*.json`;
-their convergence histories are in `records/`. Verify the large arrays,
-histories and all saved translation statistics with:
+their convergence histories are in `records/`. Reconstruct missing arrays, verify the histories and independently recalculate
+all saved translation statistics with:
 
 ```sh
-uv run python run/verify_pcs_translation.py --output-root results/pcs_translation_2026-10-25
+uv run python run/verify_pcs_translation.py
 ```
+
+Select an individual model and seed with `--models local_full --seeds 0`.
+Use `--device cpu` or `--device cuda` to override automatic device selection.
+The command handles MNIST preparation, inference, direct symmetry checks and
+comparison with the reference statistics in that order.
 
 For MFA, `results/mfa_translated/comparison/` contains the numerical summary
 and full learning curves. `SHA256SUMS` in that bundle verifies its files.
