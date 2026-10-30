@@ -8,15 +8,16 @@ from typing import TYPE_CHECKING, Sequence
 import warnings
 
 from qcnn import (
-    ARTICLE_PANEL_FIGSIZE,
     TemporalStatisticSummary,
-    configure_matplotlib_pdf_fonts,
     load_saved_training_histories,
     plot_temporal_summary,
     summarize_temporal_samples,
 )
 
+from qcnn.matplotlib_config import MANUSCRIPT_HALF_FIGSIZE, configure_manuscript_plot_fonts
+
 if TYPE_CHECKING:
+    from matplotlib.axes import Axes
     from matplotlib.figure import Figure
     from qcnn import TrainingHistory
 
@@ -43,7 +44,7 @@ def _require_matplotlib():
     try:
         import matplotlib
 
-        configure_matplotlib_pdf_fonts(matplotlib)
+        configure_manuscript_plot_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(
@@ -154,7 +155,8 @@ def plot_article_figure_5b(
     epoch_group_size: int = DEFAULT_EPOCH_GROUP_SIZE,
     lower_percentile: float = 25.0,
     upper_percentile: float = 75.0,
-    figsize: tuple[float, float] = ARTICLE_PANEL_FIGSIZE,
+    figsize: tuple[float, float] = MANUSCRIPT_HALF_FIGSIZE,
+    ax: Axes | None = None,
 ) -> Figure:
     plt = _require_matplotlib()
     series_by_image_size = summarize_image_size_sweep(
@@ -166,7 +168,11 @@ def plot_article_figure_5b(
         upper_percentile=upper_percentile,
     )
 
-    figure, ax = plt.subplots(figsize=figsize)
+    standalone = ax is None
+    if standalone:
+        figure, ax = plt.subplots(figsize=figsize)
+    else:
+        figure = ax.figure
     figure.patch.set_facecolor("white")
     ax.set_facecolor("white")
 
@@ -177,7 +183,7 @@ def plot_article_figure_5b(
             ax,
             summary=series.summary,
             color=color,
-            linewidth=1.5,
+            linewidth=0.9,
             linestyle="-",
             band_alpha=0.25,
             label=series.label,
@@ -189,7 +195,8 @@ def plot_article_figure_5b(
     ax.set_xlim(min(all_epoch_values), max(all_epoch_values))
     ax.legend(loc="lower right", framealpha=0.8)
 
-    figure.tight_layout()
+    if standalone:
+        figure.tight_layout(pad=0.35)
     return figure
 
 

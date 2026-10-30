@@ -84,8 +84,13 @@ def test_plot_figure_2_parse_args_defaults_match_plot_function_defaults() -> Non
 
     assert args.samples_per_class == plot_figure_2.DEFAULT_SAMPLES_PER_CLASS
     assert args.artifacts_root == plot_figure_2.DEFAULT_ARTIFACTS_ROOT
-    assert args.full_mnist_classical_artifacts_root == (
-        plot_figure_2.DEFAULT_FULL_MNIST_CLASSICAL_ARTIFACTS_ROOT
+    assert args.full_mnist_classical_artifacts_root is None
+    assert plot_figure_2.resolve_full_mnist_classical_artifacts_root(args) == (
+        plot_figure_2.DEFAULT_FULL_MNIST_CLASSICAL_ARTIFACTS_ROOT.resolve()
+    )
+    moved = plot_figure_2.parse_args(["--artifacts-root", "/elsewhere/artifacts"])
+    assert plot_figure_2.resolve_full_mnist_classical_artifacts_root(moved) == Path(
+        "/elsewhere/artifacts/full_mnist_classical_baselines"
     )
     assert (
         args.translated_scaled_image_size
@@ -404,7 +409,7 @@ def test_plot_article_figure_2a_uses_unsuffixed_labels_for_single_regime() -> No
 
     legend = figure.axes[0].get_legend()
     assert legend is not None
-    assert legend._loc == 7
+    assert legend._loc == 9
     assert [text.get_text() for text in legend.texts] == ["CNN", "Train CNN", "MLP", "Train MLP"]
 
     plt.close(figure)

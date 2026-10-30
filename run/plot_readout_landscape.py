@@ -8,8 +8,9 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import torch
 
-from qcnn import ARTICLE_PANEL_FIGSIZE, configure_matplotlib_pdf_fonts
+from qcnn.matplotlib_config import MANUSCRIPT_HALF_FIGSIZE, configure_manuscript_plot_fonts
 from qcnn.article_training import build_canonical_reference_run_directory_name
+from qcnn.json_artifacts import load_payload
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
@@ -45,7 +46,7 @@ def _require_matplotlib():
     try:
         import matplotlib
 
-        configure_matplotlib_pdf_fonts(matplotlib)
+        configure_manuscript_plot_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(
@@ -56,7 +57,7 @@ def _require_matplotlib():
 
 
 def load_readout_landscape_payload(payload_path: str | Path) -> dict[str, Any]:
-    payload = torch.load(Path(payload_path), map_location="cpu", weights_only=False)
+    payload = load_payload(payload_path)
     if not isinstance(payload, Mapping):
         raise ValueError("readout landscape payload must deserialize to a mapping.")
     return dict(payload)
@@ -146,12 +147,12 @@ def _compute_panel_color_scale(panel: ReadoutLandscapePanel) -> tuple[float, flo
 def plot_article_figure_s3_panel(
     *,
     panel: ReadoutLandscapePanel,
-    figsize: tuple[float, float] = ARTICLE_PANEL_FIGSIZE,
+    figsize: tuple[float, float] = MANUSCRIPT_HALF_FIGSIZE,
 ) -> "Figure":
     plt = _require_matplotlib()
     vmin, vmax = _compute_panel_color_scale(panel)
 
-    figure, ax = plt.subplots(figsize=figsize)
+    figure, ax = plt.subplots(figsize=figsize, layout="constrained")
     figure.patch.set_facecolor("white")
     ax.set_facecolor("white")
 
@@ -168,18 +169,17 @@ def plot_article_figure_s3_panel(
             float(panel.pc2_sigma[0].item()),
             float(panel.pc2_sigma[-1].item()),
         ),
-        aspect="auto",
+        aspect="equal",
         cmap="viridis",
         interpolation="nearest",
         vmin=vmin,
         vmax=vmax,
     )
-    ax.set_xlabel("Local shot-noise axis 1 (sigma)")
-    ax.set_ylabel("Local shot-noise axis 2 (sigma)")
-    colorbar = figure.colorbar(image, ax=ax)
-    colorbar.set_label("Mean cross-entropy (nats/sample)")
+    ax.set_xlabel(r"Local axis 1 ($\sigma$)")
+    ax.set_ylabel(r"Local axis 2 ($\sigma$)")
+    colorbar = figure.colorbar(image, ax=ax, location="top", pad=0.08, fraction=0.06, aspect=25)
+    colorbar.set_label("Mean cross-entropy\n(nats/sample)")
 
-    figure.tight_layout()
     return figure
 
 

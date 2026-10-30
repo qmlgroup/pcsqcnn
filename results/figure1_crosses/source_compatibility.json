@@ -1,0 +1,32 @@
+{
+  "description": "Accepted revisions change docstrings and disable inference mode while constructing cached constants. Original training hashes are retained.",
+  "archived": {
+    "figure1_crosses.py": "2ab7eff6bcd267a66d012c7836b3b2eb3880d98f0f42e48d15a3a83cc42ce7b9",
+    "quantum.py": "da45438108c65950a23db8dadf3da972e91dac3273a0955d451db689871f7283",
+    "layout.py": "a4d16e5c3fb1072a25cf3106f9b566c7f889c31240b4412d2a7a12e3af338d58",
+    "baselines/sp_qcnn.py": "324e4636f9d3820d676cbe64c9869a3d1a6ecaa8ca73302c09161aac23543429"
+  },
+  "compatible": {
+    "figure1_crosses.py": "93b04375abc0a0ef812d9a97ec4bf27cbd9b44c97ca7c931d513a26dc19b06cc",
+    "quantum.py": "ba0c426ca0d4bf303221417ef563f557325e9328ae65231635fa4f4f79edaf49",
+    "layout.py": "a4d16e5c3fb1072a25cf3106f9b566c7f889c31240b4412d2a7a12e3af338d58",
+    "baselines/sp_qcnn.py": "4c927565de731d9f245fbd2546204cd3934fd3191b2ccd6c7b83605831089a74"
+  },
+  "validation": {
+    "quantum_ast": "Identical to the archived quantum.py after removing the three inference_mode(False) decorators on constant-cache constructors.",
+    "cross_models": {
+      "models": [
+        "pcs_seed0",
+        "pcs_seed1",
+        "pcs_seed2",
+        "qcs_seed0",
+        "qcs_seed1",
+        "qcs_seed2"
+      ],
+      "probe_count": 6,
+      "dtype": "float64",
+      "comparison": "States, logits and parameter gradients before and after the constant-cache guards, evaluated with the saved weights on the six Figure 1 probes.",
+      "maximum_absolute_change": 0.0
+    }
+  }
+}

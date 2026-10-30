@@ -144,6 +144,11 @@ class StatisticCollector:
             for phase, values in self._history.items()
         }
 
+    def restore_history(self, *, train: list[float], test: list[float]) -> None:
+        """Restore epoch aggregates before a resumed training run."""
+
+        self._history = {"train": list(train), "test": list(test)}
+
     def export_state(self) -> dict[str, Any]:
         """Export additional serializable collector state."""
 

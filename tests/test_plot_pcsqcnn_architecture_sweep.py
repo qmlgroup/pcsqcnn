@@ -296,6 +296,6 @@ def test_plot_article_figure_5a_places_layer_and_feature_legends_in_requested_po
 
     assert len(legends) == 2
     assert legends_by_labels[("Q=1", "Q=5")]._loc == 4
-    assert legends_by_labels[(r"$n_f=1$", r"$n_f=3$")]._loc == 8
+    assert legends_by_labels[(r"$n_f=1$", r"$n_f=3$")]._loc == 3
 
     plot_figure_5a._require_matplotlib().close(figure)

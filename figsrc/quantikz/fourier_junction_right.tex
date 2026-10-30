@@ -1,0 +1,19 @@
+\documentclass[tikz,border=2pt]{standalone}
+\usepackage{quantikz}
+\usepackage{physics}
+
+\begin{document}
+\tikzset{
+operator/.append style={fill=teal!8},
+meter/.append style={fill=orange!18},
+}
+\begin{quantikz}[thin lines,row sep=0.33cm, column sep=0.3cm]
+\qw & \qw &
+\gate{R_z\!\left(+\frac{\pi}{2^{\,\cdots}}\right)} & \qw \\
+\qw & \qw &
+\gate{R_z\!\left(+\frac{\pi}{2^{\,n-2}}\right)} & \qw \\
+\qw & \qw &
+\gate{R_z\!\left(+\frac{\pi}{2^{\,n-1}}\right)} & \qw \\
+\qw & \gate{H} & \meter{} \vcw{-3} & \cw
+\end{quantikz}
+\end{document}

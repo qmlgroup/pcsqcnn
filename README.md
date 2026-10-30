@@ -1,108 +1,111 @@
-# `qcnn`
+# PCS-QCNN
 
-Companion code for *Pixel-Translation-Equivariant Quantum Convolutional Neural Networks via Fourier Multiplexers* by Dmitry Chirkov and Igor Lobanov ([arXiv:2604.06094](https://arxiv.org/abs/2604.06094)).
+Companion code for *Pixel-Translation-Equivariant Quantum Convolutional Neural
+Networks via Fourier Multiplexers* by Dmitry Chirkov and Igor Lobanov
+([arXiv:2604.06094](https://arxiv.org/abs/2604.06094)).
 
-This repository contains the Torch-first PCS-QCNN implementation, the figure-generation pipeline used for the paper, and an optional PennyLane reference backend for readable inference-only circuit inspection.
+The package provides the PyTorch PCS-QCNN, classical CNN/MLP and quantum
+controls, the FRQI-adapted HKP and sp-QCNN comparators, and the PCA-based MFA
+pipeline. PCS supports general and radius-one Fourier multiplexers, with full
+or position-summed readout. An optional PennyLane backend checks the general
+PCS circuit at inference.
 
-## Additional Documentation
+## Install
 
-The files below provide more detailed project-specific documentation beyond this landing page:
+Python 3.11+ and `uv` are required. A CUDA-capable GPU is recommended for
+training; saved numerical results can be plotted on CPU.
 
-- [`INFO.md`](INFO.md): architecture, model families, data/state representation, and other repository-wide concepts
-- [`BUILD.md`](BUILD.md): detailed build instructions, manual rebuild workflows, and script-level commands
-- [`ARTIFACTS.md`](ARTIFACTS.md): figure map, artifact contracts, and notes on which data are computed for each figure
-
-## What Is In This Repository
-
-- `src/qcnn/`: core library code for the Torch implementation
-- `run/`: data-preparation, evaluation, and plotting entrypoints for the paper figures
-- `build_all_figures.sh`: one-shot entrypoint that runs the currently wired figure pipeline in dependency order
-- `pennylane/`: optional readable reference implementation for full-readout inference
-
-## Installation
-
-The project targets Python 3.11+ and uses `uv` for environment management.
-
-```bash
-uv sync --extra test --extra notebook
+```sh
+uv sync --locked --extra test --extra notebook
 ```
 
-If you also want the optional PennyLane reference backend, install that extra too:
+Add `--extra mfa` for the MFA experiment or `--extra pennylane` for the
+reference backend. The implementation is MIT-licensed; dependencies retain
+their own licenses.
 
-```bash
-uv sync --extra test --extra notebook --extra pennylane
+## Reproduce figures
+
+With the MNIST artifact inputs under `artifacts/`, run:
+
+```sh
+sh build_all_figures.sh --plots-only
+uv run python run/render_paper_diagrams.py
 ```
 
-## Build All Figures
+The diagram command requires pdfLaTeX with TikZ, Quantikz, `standalone`,
+`braket`, Helvetica and `sansmath`.
 
-To run the full currently wired pipeline from raw inputs:
+The paired main-text plots can also be rebuilt together, or individually with
+`--figure sweeps`, `--figure baselines`, or `--figure histograms`:
 
-```bash
-sh build_all_figures.sh
+```sh
+uv run python run/plot_main_panels.py --figure all
 ```
 
-This writes rendered PDFs to `figs/`, stores generated intermediate results in `artifacts/`, and downloads MNIST data into `data/` when needed.
+The same entry point without `--plots-only` prepares the main MNIST and FRQI
+comparison inputs before rendering. Training for the PCS readout experiment,
+MFA and the cross-pattern illustration has separate commands in the guides
+below. Generated data and weights belong in `artifacts/`, and figures in `figs/`.
 
-## Hardware Guidance
+## Numerical results
 
-- Full rebuilds from raw MNIST data are compute-heavy. A CUDA-capable NVIDIA GPU is strongly recommended.
-- Figure-only rendering from already prepared artifacts is much lighter and is usually practical on CPU.
-- The most GPU-oriented stages are the checkpoint reevaluation scripts, especially finite-shot loss sampling and readout-landscape evaluation.
-- Exact runtime depends strongly on hardware and on whether the required artifacts already exist.
+- [PCS readout and cyclic translations](results/pcs_translation_2026-10-25/README.md):
+  four architectures, three seeds, convergence histories and translation maps.
+- [MFA comparison](results/mfa_translated/README.md): three-seed results and
+  learning histories on the translated-MNIST task.
+- [Cross-pattern illustration](results/figure1_crosses/README.md): trained
+  states, classification results and full-state symmetry checks for Figure 1.
 
-## Using Precomputed Artifacts
+The shared FRQI comparison uses the original translated-MNIST dataset:
+16×16 digits on a 32×32 canvas, offsets ±8, 1000 training images per class,
+and the standard 10000-image test set. It compares full-readout PCS and the
+adapted HKP, sp-QCNN and address-QCS models. The sp-QCNN result uses seeds 0
+and 1; the other models use seeds 0–2. MFA is reported separately because
+its PCA and amplitude encoding define a different input pipeline.
 
-The Git repository is intended to stay lightweight, so the full artifact tree is distributed separately through the
-[`artifacts-v1` GitHub release](https://github.com/qmlgroup/pcsqcnn/releases/tag/artifacts-v1).
+## Guides
 
-After downloading the archive from that release, unpack it into the repository-root `artifacts/` directory so that
-paths such as `artifacts/pcsqcnn_image_size_sweep/16on16/` exist locally.
+- [Paper figures, tables and release data](REPRODUCING.md)
+- [Build and run commands](BUILD.md)
+- [Architecture and data representation](INFO.md)
+- [Artifact formats and figure inputs](ARTIFACTS.md)
+- [MFA model and benchmark](MFA_BENCHMARK.md)
+- [PCS readout and translation experiment](docs/pcs_translation.md)
+- [Cross-pattern experiment](docs/figure1_crosses.md)
 
-With precomputed artifacts in place, you can either:
+`src/qcnn/` contains the library; `run/` contains training, evaluation and
+plotting entry points; `tests/` contains model and pipeline checks. Optional
+inspection notebooks are in `notebooks/` and `pennylane/`.
 
-- rerun only the plotting scripts in `run/plot_*.py`, or
-- run `sh build_all_figures.sh` and let the prep/evaluation steps reuse the completed outputs already present in `artifacts/`
+## Artifact storage
 
-## Inspect Saved Artifacts in Marimo
+The [artifacts-v3 release](https://github.com/qmlgroup/pcsqcnn/releases/tag/artifacts-v3)
+contains the source snapshot, numerical data and SHA-256 checksums for this
+revision. All model implementations and training scripts are included;
+trained weights from the new experiments are not part of this release.
 
-The repository includes small `marimo` notebooks for interactive inspection of saved runs.
+Numerical records sufficient for all plots are supplied as a separate
+`pcsqcnn-plot-data.zip` archive, extracted at the package root to create
+`artifacts/`. The compact result bundles under `results/` are included in Git.
+The optional `pcsqcnn-translation-arrays.zip` supplies the per-image arrays
+used to verify the cyclic-translation statistics independently. Neither
+archive is needed for training from scratch. See [REPRODUCING.md](REPRODUCING.md)
+for extraction, checksums and the distinction between plotting, verification
+and rerunning an experiment.
 
-To inspect a saved Torch run, open:
+The earlier MNIST records and checkpoints remain available in the
+[`artifacts-v2` release](https://github.com/qmlgroup/pcsqcnn/releases/tag/artifacts-v2).
+That archive predates the additional comparator and translation experiments.
 
-```bash
-uv run marimo edit notebooks/inspect_artifact.py
+To export the MNIST/FRQI figure inputs and comparator-table evidence from
+a complete local artifact tree:
+
+```sh
+uv run python run/export_plot_artifacts.py --source FULL_ARTIFACTS --destination EXPORTED_ARTIFACTS --check
 ```
 
-Before running the notebook, set `run_directory` and `seed` in the configuration cell to point to the saved run you want to inspect under `artifacts/`. The notebook reconstructs the saved run, renders its convergence plots, re-evaluates it on the saved MNIST test configuration, and shows article-style error analysis.
-
-For model development and end-to-end experimentation, you can also open:
-
-```bash
-uv run marimo edit notebooks/train_qcnn.py
-```
-
-That notebook is oriented toward interactive training and pipeline exploration rather than post-hoc artifact inspection.
-
-## Run the PennyLane Reference
-
-The PennyLane path is optional and inference-only. It reconstructs a readable PennyLane reference model from a saved Torch run rather than providing a separate training stack.
-
-First install the optional extra:
-
-```bash
-uv sync --extra test --extra notebook --extra pennylane
-```
-
-Then open the PennyLane inspection notebook:
-
-```bash
-uv run marimo edit pennylane/inspect_pennylane_artifact.py
-```
-
-Set `run_directory` and `seed` in the notebook to the saved run you want to inspect. The notebook rebuilds `PennyLanePCSQCNN` from the Torch weights, reconstructs the saved MNIST test loader, evaluates predictions, and displays the resulting confusion matrix.
-
-## Notes
-
-- The main runtime is Torch-based.
-- PennyLane support is optional and inference-only.
-- The repository contains code and documentation for reproducing paper artifacts and figures, not just the final plotting scripts.
+The exporter retains numerical values and training histories, converts local
+data paths to package-relative paths, and records file checksums. It checks
+that every selected plot renders identically from the export. Model weights
+are excluded; the comparison table's untuned address-QCS runs and validation
+search summary are included.

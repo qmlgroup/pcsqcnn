@@ -15,6 +15,7 @@ from qcnn.visualization import (
     _plot_error_analysis_confusion_panel,
     _plot_error_analysis_gallery_panel,
 )
+from qcnn.json_artifacts import load_payload
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
@@ -91,7 +92,7 @@ def _require_matplotlib():
 
 
 def load_error_structure_payload(payload_path: str | Path) -> SavedErrorStructurePayload:
-    payload = torch.load(Path(payload_path), map_location="cpu", weights_only=False)
+    payload = load_payload(payload_path)
     if not isinstance(payload, Mapping):
         raise ValueError("Figure S4 payload must deserialize to a mapping.")
 
@@ -181,6 +182,14 @@ def _plot_article_figure_s4b_from_saved_payload(
         predicted_label_color=DEFAULT_PREDICTED_LABEL_COLOR,
         true_label_color=DEFAULT_TRUE_LABEL_COLOR,
     )
+    if saved_payload.payload.num_examples:
+        # The placeholder spans the original canvas, while the square tiles
+        # exclude themselves from automatic layout. Crop to the actual gallery.
+        figure.set_layout_engine(None)
+        gallery_anchor_ax.set_visible(False)
+        gallery_anchor_ax.set_in_layout(False)
+        for tile in figure.axes[1:]:
+            tile.set_in_layout(True)
     return figure
 
 
@@ -257,12 +266,12 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     confusion_figure = _plot_article_figure_s4a_from_saved_payload(saved_payload)
     confusion_output_path = output_dir / DEFAULT_CONFUSION_OUTPUT_FILENAME
-    confusion_figure.savefig(confusion_output_path)
+    confusion_figure.savefig(confusion_output_path, bbox_inches="tight", pad_inches=0.02)
     plt.close(confusion_figure)
 
     gallery_figure = _plot_article_figure_s4b_from_saved_payload(saved_payload)
     gallery_output_path = output_dir / DEFAULT_GALLERY_OUTPUT_FILENAME
-    gallery_figure.savefig(gallery_output_path)
+    gallery_figure.savefig(gallery_output_path, bbox_inches="tight", pad_inches=0.02)
     plt.close(gallery_figure)
 
     print(confusion_output_path)

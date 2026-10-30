@@ -8,12 +8,13 @@ from typing import Any, Mapping, Sequence
 import torch
 
 from qcnn import (
-    ARTICLE_PANEL_FIGSIZE,
     TemporalStatisticSummary,
-    configure_matplotlib_pdf_fonts,
     plot_temporal_summary,
     summarize_temporal_samples,
 )
+from qcnn.json_artifacts import load_payload
+
+from qcnn.matplotlib_config import MANUSCRIPT_COMPACT_FIGSIZE, configure_manuscript_plot_fonts
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
@@ -34,7 +35,7 @@ def _require_matplotlib():
     try:
         import matplotlib
 
-        configure_matplotlib_pdf_fonts(matplotlib)
+        configure_manuscript_plot_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(
@@ -45,7 +46,7 @@ def _require_matplotlib():
 
 
 def load_gradient_norms_payload(payload_path: str | Path) -> dict[str, Any]:
-    payload = torch.load(Path(payload_path), map_location="cpu", weights_only=False)
+    payload = load_payload(payload_path)
     if not isinstance(payload, Mapping):
         raise ValueError("gradient-norm payload must deserialize to a mapping.")
     return dict(payload)
@@ -253,7 +254,7 @@ def summarize_gradient_norms_payload(
 def plot_article_figure_s2a(
     *,
     payload_path: str | Path,
-    figsize: tuple[float, float] = ARTICLE_PANEL_FIGSIZE,
+    figsize: tuple[float, float] = MANUSCRIPT_COMPACT_FIGSIZE,
     log_y: bool = True,
 ) -> "Figure":
     plt = _require_matplotlib()
@@ -271,10 +272,10 @@ def plot_article_figure_s2a(
             ax,
             summary=series.summary,
             color=series.color,
-            linewidth=1.75,
+            linewidth=1.2,
             linestyle=series.linestyle,
             marker="o",
-            markersize=3.5,
+            markersize=2.5,
             label="_nolegend_",
             band_alpha=0.16,
         )
@@ -291,27 +292,27 @@ def plot_article_figure_s2a(
             [0],
             color="C0",
             marker="o",
-            linewidth=1.75,
-            markersize=3.5,
-            label="All quantum parameters",
+            linewidth=1.2,
+            markersize=2.5,
+            label="All parameters",
         ),
         Line2D(
             [0],
             [0],
             color="C1",
             marker="o",
-            linewidth=1.75,
-            markersize=3.5,
-            label="First quantum layer",
+            linewidth=1.2,
+            markersize=2.5,
+            label="First layer",
         ),
         Line2D(
             [0],
             [0],
             color="C2",
             marker="o",
-            linewidth=1.75,
-            markersize=3.5,
-            label="Last quantum layer",
+            linewidth=1.2,
+            markersize=2.5,
+            label="Last layer",
         ),
     ]
     linestyle_legend_handles = [
@@ -319,7 +320,7 @@ def plot_article_figure_s2a(
             [0],
             [0],
             color="0.25",
-            linewidth=1.75,
+            linewidth=1.2,
             linestyle="-",
             label="Empirical-loss gradient",
         ),
@@ -327,24 +328,26 @@ def plot_article_figure_s2a(
             [0],
             [0],
             color="0.25",
-            linewidth=1.75,
+            linewidth=1.2,
             linestyle="--",
             label="Per-sample RMS gradient",
         ),
     ]
     color_legend = ax.legend(
         handles=color_legend_handles,
-        loc="upper right",
-        framealpha=0.85,
+        loc="upper center", bbox_to_anchor=(0.5, 0.99), ncols=3,
+        bbox_transform=figure.transFigure, frameon=False, borderaxespad=0,
     )
     ax.add_artist(color_legend)
-    ax.legend(
+    color_legend.set_in_layout(False)
+    style_legend = ax.legend(
         handles=linestyle_legend_handles,
-        loc="lower left",
-        framealpha=0.85,
+        loc="upper center", bbox_to_anchor=(0.5, 0.92), ncols=2,
+        bbox_transform=figure.transFigure, frameon=False, borderaxespad=0,
     )
 
-    figure.tight_layout()
+    style_legend.set_in_layout(False)
+    figure.tight_layout(pad=0.35, rect=(0, 0, 1, 0.85))
     return figure
 
 

@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Literal
 
 import torch
 
+from qcnn.json_artifacts import load_payload, resolve_payload_path
 from qcnn.model import TrainingHistory
 
 if TYPE_CHECKING:
@@ -100,7 +101,8 @@ def _load_manifest_seed_result_paths(run_directory: str | Path) -> list[tuple[in
             raise ValueError("Each manifest run entry must contain a non-empty 'result' path.")
         if seed in result_paths_by_seed:
             raise ValueError(f"manifest.json contains duplicate run entries for seed {seed}.")
-        result_paths_by_seed[seed] = resolved_directory / result_name
+        # A published run may hold the JSON export of a result in place of the torch.save file.
+        result_paths_by_seed[seed] = resolve_payload_path(resolved_directory / result_name)
 
     ordered_paths: list[tuple[int, Path]] = []
     for seed in seed_order:
@@ -114,7 +116,7 @@ def _load_manifest_seed_result_paths(run_directory: str | Path) -> list[tuple[in
 
 
 def _load_saved_result_payload(result_path: Path, *, expected_seed: int) -> Mapping[str, object]:
-    payload = torch.load(result_path, map_location="cpu", weights_only=False)
+    payload = load_payload(result_path)
     if not isinstance(payload, Mapping):
         raise ValueError(f"Run result must deserialize to a mapping: {result_path}")
 

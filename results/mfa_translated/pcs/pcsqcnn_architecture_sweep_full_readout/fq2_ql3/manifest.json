@@ -1,0 +1,121 @@
+{
+  "device": "cuda",
+  "output_directory": "artifacts/pcsqcnn_architecture_sweep_full_readout/fq2_ql3",
+  "resolved_config": {
+    "dataset": {
+      "download": true,
+      "image_size": 32,
+      "max_offset": 8,
+      "num_workers": 0,
+      "pin_memory": false,
+      "root": "data",
+      "samples_per_class": 1000,
+      "scaled_image_size": 16,
+      "test_batch_size": 1600,
+      "train_batch_size": 256
+    },
+    "model": {
+      "class_name": "PCSQCNN",
+      "constructor_kwargs": {
+        "brightness_range": [
+          0.0,
+          3.141592653589793
+        ],
+        "feature_qubits": 2,
+        "image_size": 32,
+        "multiplexer_init_scale": 6.283185307179586,
+        "num_classes": 10,
+        "quantum_layers": 3,
+        "reduce_readout_to_feature_distribution": false,
+        "shot_budget": null,
+        "use_reduced_fourier_junction": true
+      },
+      "module": "qcnn.hybrid"
+    },
+    "optimizer": {
+      "kind": "adam",
+      "learning_rate": 0.03,
+      "momentum": 0.0,
+      "weight_decay": 0.0
+    },
+    "output": {
+      "directory_name": "pcsqcnn_architecture_sweep_full_readout/fq2_ql3",
+      "root": "artifacts",
+      "use_timestamp_dir": false
+    },
+    "seeds": {
+      "base_seed": 0,
+      "seed_count": 3
+    },
+    "training": {
+      "device": null,
+      "num_epochs": 2000,
+      "set_to_none": true,
+      "snapshot_epochs": [],
+      "test_evaluation_interval_epochs": 10,
+      "test_requires_grad": false,
+      "torch_matmul_precision": "high"
+    }
+  },
+  "runs": [
+    {
+      "checkpoint_final": "checkpoint_final_seed0.pt",
+      "final_test_summary": {
+        "loss": 0.7870688366889954,
+        "metrics": {
+          "accuracy": 0.7593999791145325
+        }
+      },
+      "final_train_summary": {
+        "loss": 0.6210159563064576,
+        "metrics": {
+          "accuracy": 0.8416
+        }
+      },
+      "result": "result_seed0.json",
+      "seed": 0,
+      "snapshots": {}
+    },
+    {
+      "checkpoint_final": "checkpoint_final_seed1.pt",
+      "final_test_summary": {
+        "loss": 0.7654867577552795,
+        "metrics": {
+          "accuracy": 0.7597999930381775
+        }
+      },
+      "final_train_summary": {
+        "loss": 0.6243291613101959,
+        "metrics": {
+          "accuracy": 0.8393
+        }
+      },
+      "result": "result_seed1.json",
+      "seed": 1,
+      "snapshots": {}
+    },
+    {
+      "checkpoint_final": "checkpoint_final_seed2.pt",
+      "final_test_summary": {
+        "loss": 0.7815630221366883,
+        "metrics": {
+          "accuracy": 0.7575999832153321
+        }
+      },
+      "final_train_summary": {
+        "loss": 0.6335511479854584,
+        "metrics": {
+          "accuracy": 0.8383
+        }
+      },
+      "result": "result_seed2.json",
+      "seed": 2,
+      "snapshots": {}
+    }
+  ],
+  "seeds": [
+    0,
+    1,
+    2
+  ]
+}

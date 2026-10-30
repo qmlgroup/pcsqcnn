@@ -1,0 +1,1068 @@
+[
+  {
+    "epoch": 0,
+    "loss": 0.7166526317596436,
+    "accuracy": 0.5,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 0.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.0
+    },
+    "logit_min": -0.6531111598014832,
+    "logit_max": -0.3007119297981262
+  },
+  {
+    "epoch": 1,
+    "loss": 0.694553017616272,
+    "accuracy": 0.5,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 0.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.0
+    },
+    "logit_min": -0.3269735276699066,
+    "logit_max": -0.13724321126937866
+  },
+  {
+    "epoch": 25,
+    "loss": 0.6725484132766724,
+    "accuracy": 0.5,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 0.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.0
+    },
+    "logit_min": -0.23952090740203857,
+    "logit_max": -0.022820930927991867
+  },
+  {
+    "epoch": 50,
+    "loss": 0.6275591850280762,
+    "accuracy": 0.7916666269302368,
+    "strata": {
+      "5_pixels_label0": 0.5,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.6666666865348816
+    },
+    "logit_min": -0.30598118901252747,
+    "logit_max": 0.26470887660980225
+  },
+  {
+    "epoch": 75,
+    "loss": 0.585939884185791,
+    "accuracy": 0.7916666269302368,
+    "strata": {
+      "5_pixels_label0": 0.5,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.6666666865348816
+    },
+    "logit_min": -0.661214292049408,
+    "logit_max": 0.3642027676105499
+  },
+  {
+    "epoch": 100,
+    "loss": 0.5543984174728394,
+    "accuracy": 0.7916666269302368,
+    "strata": {
+      "5_pixels_label0": 0.5,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.6666666865348816
+    },
+    "logit_min": -0.720964252948761,
+    "logit_max": 0.82426518201828
+  },
+  {
+    "epoch": 125,
+    "loss": 0.5298808813095093,
+    "accuracy": 0.7916666269302368,
+    "strata": {
+      "5_pixels_label0": 0.5,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.6666666865348816
+    },
+    "logit_min": -0.9143101572990417,
+    "logit_max": 0.8722227215766907
+  },
+  {
+    "epoch": 150,
+    "loss": 0.5106451511383057,
+    "accuracy": 0.7916666269302368,
+    "strata": {
+      "5_pixels_label0": 0.5,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.6666666865348816
+    },
+    "logit_min": -0.8662237524986267,
+    "logit_max": 1.2169798612594604
+  },
+  {
+    "epoch": 175,
+    "loss": 0.4893781542778015,
+    "accuracy": 0.7916666269302368,
+    "strata": {
+      "5_pixels_label0": 0.5,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.6666666865348816
+    },
+    "logit_min": -1.053789496421814,
+    "logit_max": 0.9840876460075378
+  },
+  {
+    "epoch": 200,
+    "loss": 0.46713846921920776,
+    "accuracy": 0.7916666269302368,
+    "strata": {
+      "5_pixels_label0": 0.5,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.6666666865348816
+    },
+    "logit_min": -1.0130375623703003,
+    "logit_max": 1.1377366781234741
+  },
+  {
+    "epoch": 225,
+    "loss": 0.448727548122406,
+    "accuracy": 0.875,
+    "strata": {
+      "5_pixels_label0": 0.5,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -0.7502645254135132,
+    "logit_max": 1.6930453777313232
+  },
+  {
+    "epoch": 250,
+    "loss": 0.4225640892982483,
+    "accuracy": 0.9166667461395264,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.6666666865348816
+    },
+    "logit_min": -0.952928364276886,
+    "logit_max": 1.4272855520248413
+  },
+  {
+    "epoch": 275,
+    "loss": 0.4014454782009125,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -0.9819510579109192,
+    "logit_max": 1.607290267944336
+  },
+  {
+    "epoch": 300,
+    "loss": 0.381083220243454,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -0.8907152414321899,
+    "logit_max": 1.9172450304031372
+  },
+  {
+    "epoch": 325,
+    "loss": 0.36646774411201477,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.273284912109375,
+    "logit_max": 1.7540760040283203
+  },
+  {
+    "epoch": 350,
+    "loss": 0.34621918201446533,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.2287696599960327,
+    "logit_max": 2.017091751098633
+  },
+  {
+    "epoch": 375,
+    "loss": 0.33547866344451904,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.4886056184768677,
+    "logit_max": 1.9728375673294067
+  },
+  {
+    "epoch": 400,
+    "loss": 0.31577450037002563,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.409860372543335,
+    "logit_max": 2.2623162269592285
+  },
+  {
+    "epoch": 425,
+    "loss": 0.3099679946899414,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -0.8323080539703369,
+    "logit_max": 3.027235269546509
+  },
+  {
+    "epoch": 450,
+    "loss": 0.28851252794265747,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.525516390800476,
+    "logit_max": 2.5514543056488037
+  },
+  {
+    "epoch": 475,
+    "loss": 0.2908690273761749,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.9574942588806152,
+    "logit_max": 2.324490785598755
+  },
+  {
+    "epoch": 500,
+    "loss": 0.2676275372505188,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.7227897644042969,
+    "logit_max": 2.7303333282470703
+  },
+  {
+    "epoch": 525,
+    "loss": 0.2525933086872101,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.396439790725708,
+    "logit_max": 3.2409188747406006
+  },
+  {
+    "epoch": 550,
+    "loss": 0.24184678494930267,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.4738519191741943,
+    "logit_max": 3.354252815246582
+  },
+  {
+    "epoch": 575,
+    "loss": 0.23303110897541046,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.4784247875213623,
+    "logit_max": 3.515714168548584
+  },
+  {
+    "epoch": 600,
+    "loss": 0.22492556273937225,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.4481940269470215,
+    "logit_max": 3.7250008583068848
+  },
+  {
+    "epoch": 625,
+    "loss": 0.21487772464752197,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.6108784675598145,
+    "logit_max": 3.7416319847106934
+  },
+  {
+    "epoch": 650,
+    "loss": 0.21246197819709778,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.346578598022461,
+    "logit_max": 4.167162895202637
+  },
+  {
+    "epoch": 675,
+    "loss": 0.2041221261024475,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.4319190979003906,
+    "logit_max": 4.233553409576416
+  },
+  {
+    "epoch": 700,
+    "loss": 0.19260632991790771,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.8608660697937012,
+    "logit_max": 3.976966142654419
+  },
+  {
+    "epoch": 725,
+    "loss": 0.18543241918087006,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.8049683570861816,
+    "logit_max": 4.1953535079956055
+  },
+  {
+    "epoch": 750,
+    "loss": 0.17871105670928955,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.9194574356079102,
+    "logit_max": 4.244046688079834
+  },
+  {
+    "epoch": 775,
+    "loss": 0.20373940467834473,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.0278267860412598,
+    "logit_max": 5.240807056427002
+  },
+  {
+    "epoch": 800,
+    "loss": 0.167796328663826,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.9886868000030518,
+    "logit_max": 4.451481342315674
+  },
+  {
+    "epoch": 825,
+    "loss": 0.1621975600719452,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.935417890548706,
+    "logit_max": 4.649921417236328
+  },
+  {
+    "epoch": 850,
+    "loss": 0.15667124092578888,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.050975799560547,
+    "logit_max": 4.68521785736084
+  },
+  {
+    "epoch": 875,
+    "loss": 0.15146157145500183,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.0760657787323,
+    "logit_max": 4.805914402008057
+  },
+  {
+    "epoch": 900,
+    "loss": 0.14648933708667755,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.101609945297241,
+    "logit_max": 4.924499034881592
+  },
+  {
+    "epoch": 925,
+    "loss": 0.1417332887649536,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.1376187801361084,
+    "logit_max": 5.030888557434082
+  },
+  {
+    "epoch": 950,
+    "loss": 0.1509755253791809,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -1.5270546674728394,
+    "logit_max": 5.749518871307373
+  },
+  {
+    "epoch": 975,
+    "loss": 0.13795922696590424,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.4789786338806152,
+    "logit_max": 4.896140098571777
+  },
+  {
+    "epoch": 1000,
+    "loss": 0.13167166709899902,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.3582510948181152,
+    "logit_max": 5.145876884460449
+  },
+  {
+    "epoch": 1025,
+    "loss": 0.12724530696868896,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.2649056911468506,
+    "logit_max": 5.367856979370117
+  },
+  {
+    "epoch": 1050,
+    "loss": 0.12354215979576111,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.284627914428711,
+    "logit_max": 5.474193572998047
+  },
+  {
+    "epoch": 1075,
+    "loss": 0.11998597532510757,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.318765163421631,
+    "logit_max": 5.565436363220215
+  },
+  {
+    "epoch": 1100,
+    "loss": 0.11656372249126434,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.353193998336792,
+    "logit_max": 5.654671669006348
+  },
+  {
+    "epoch": 1125,
+    "loss": 0.11326906085014343,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.383702278137207,
+    "logit_max": 5.74650764465332
+  },
+  {
+    "epoch": 1150,
+    "loss": 0.11009649932384491,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.4132885932922363,
+    "logit_max": 5.837798118591309
+  },
+  {
+    "epoch": 1175,
+    "loss": 0.10704070329666138,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.443836212158203,
+    "logit_max": 5.92695426940918
+  },
+  {
+    "epoch": 1200,
+    "loss": 0.10409367829561234,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.4741952419281006,
+    "logit_max": 6.015021800994873
+  },
+  {
+    "epoch": 1225,
+    "loss": 0.1012529581785202,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.5016767978668213,
+    "logit_max": 6.104677200317383
+  },
+  {
+    "epoch": 1250,
+    "loss": 0.09851165115833282,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.5332512855529785,
+    "logit_max": 6.189146518707275
+  },
+  {
+    "epoch": 1275,
+    "loss": 0.09586787223815918,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.560831308364868,
+    "logit_max": 6.276348114013672
+  },
+  {
+    "epoch": 1300,
+    "loss": 0.09353972226381302,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.490114450454712,
+    "logit_max": 6.458785057067871
+  },
+  {
+    "epoch": 1325,
+    "loss": 0.3516494035720825,
+    "accuracy": 0.8333333730697632,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 0.3333333432674408
+    },
+    "logit_min": -5.6451826095581055,
+    "logit_max": 3.177042245864868
+  },
+  {
+    "epoch": 1350,
+    "loss": 0.09976198524236679,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.1230640411376953,
+    "logit_max": 6.715068817138672
+  },
+  {
+    "epoch": 1375,
+    "loss": 0.10015983879566193,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -3.146677017211914,
+    "logit_max": 5.827915191650391
+  },
+  {
+    "epoch": 1400,
+    "loss": 0.09048795700073242,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.6058177947998047,
+    "logit_max": 6.468243598937988
+  },
+  {
+    "epoch": 1425,
+    "loss": 0.0885876715183258,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.5898284912109375,
+    "logit_max": 6.576153755187988
+  },
+  {
+    "epoch": 1450,
+    "loss": 0.086751788854599,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.6468629837036133,
+    "logit_max": 6.6069254875183105
+  },
+  {
+    "epoch": 1475,
+    "loss": 0.08503058552742004,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.6790475845336914,
+    "logit_max": 6.659804821014404
+  },
+  {
+    "epoch": 1500,
+    "loss": 0.08336053788661957,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.7034096717834473,
+    "logit_max": 6.719442844390869
+  },
+  {
+    "epoch": 1525,
+    "loss": 0.08173350244760513,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.7256884574890137,
+    "logit_max": 6.780538558959961
+  },
+  {
+    "epoch": 1550,
+    "loss": 0.08014607429504395,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.74726939201355,
+    "logit_max": 6.841832160949707
+  },
+  {
+    "epoch": 1575,
+    "loss": 0.07859628647565842,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.768604278564453,
+    "logit_max": 6.902832984924316
+  },
+  {
+    "epoch": 1600,
+    "loss": 0.07708169519901276,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.7898616790771484,
+    "logit_max": 6.963528633117676
+  },
+  {
+    "epoch": 1625,
+    "loss": 0.07560335099697113,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.8111190795898438,
+    "logit_max": 7.023777484893799
+  },
+  {
+    "epoch": 1650,
+    "loss": 0.07415809482336044,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.8315317630767822,
+    "logit_max": 7.0844573974609375
+  },
+  {
+    "epoch": 1675,
+    "loss": 0.07274597138166428,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.85243821144104,
+    "logit_max": 7.144312858581543
+  },
+  {
+    "epoch": 1700,
+    "loss": 0.07136478275060654,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.8727478981018066,
+    "logit_max": 7.20426607131958
+  },
+  {
+    "epoch": 1725,
+    "loss": 0.07001544535160065,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.8937182426452637,
+    "logit_max": 7.2632575035095215
+  },
+  {
+    "epoch": 1750,
+    "loss": 0.06869694590568542,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.91384220123291,
+    "logit_max": 7.322661399841309
+  },
+  {
+    "epoch": 1775,
+    "loss": 0.06740569323301315,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.9335250854492188,
+    "logit_max": 7.382265090942383
+  },
+  {
+    "epoch": 1800,
+    "loss": 0.06614506244659424,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.9540553092956543,
+    "logit_max": 7.4406304359436035
+  },
+  {
+    "epoch": 1825,
+    "loss": 0.06491193175315857,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.973846912384033,
+    "logit_max": 7.499294281005859
+  },
+  {
+    "epoch": 1850,
+    "loss": 0.0637059286236763,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -2.9936294555664062,
+    "logit_max": 7.557725429534912
+  },
+  {
+    "epoch": 1875,
+    "loss": 0.06252603232860565,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -3.0130133628845215,
+    "logit_max": 7.6160993576049805
+  },
+  {
+    "epoch": 1900,
+    "loss": 0.06137068569660187,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -3.0336647033691406,
+    "logit_max": 7.6730194091796875
+  },
+  {
+    "epoch": 1925,
+    "loss": 0.06024312973022461,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -3.052858829498291,
+    "logit_max": 7.730954170227051
+  },
+  {
+    "epoch": 1950,
+    "loss": 0.05913887172937393,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -3.0716745853424072,
+    "logit_max": 7.788980484008789
+  },
+  {
+    "epoch": 1975,
+    "loss": 0.0580587163567543,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -3.091076374053955,
+    "logit_max": 7.846057891845703
+  },
+  {
+    "epoch": 2000,
+    "loss": 0.057000987231731415,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -3.1093149185180664,
+    "logit_max": 7.9039998054504395
+  }
+]

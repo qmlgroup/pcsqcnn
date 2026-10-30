@@ -9,3 +9,12 @@ __pycache__/
 /obsolete/
 /tools/
 .codex
+*.py[cod]
+.pytest_cache/
+/build/
+/dist/
+/*.zip
+figsrc/**/build/
+results/**/plots/
+results/**/verification.json
+results/**/diagnostics/*.npz

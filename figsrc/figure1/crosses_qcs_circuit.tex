@@ -1,0 +1,25 @@
+\documentclass[border=0pt]{standalone}
+\input{crosses_style.tex}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=-1mm]
+\path[use as bounding box] (0,0) rectangle (65,31.5);
+% The four displayed qubits form the x register, not the full 2D address.
+\draw[group rule] (5.4,4)--(4.3,4)--(4.3,30.4)--(5.4,30.4);
+\node[anchor=east,font=\fontsize{8}{9.5}\selectfont] at (2.8,17.2) {$x$};
+\foreach \j in {0,1,2,3}{
+ \pgfmathsetmacro{\yy}{7+6.8*\j}
+ \node[anchor=east,font=\fontsize{8}{9.5}\selectfont] at (9,\yy) {$q_\j$};
+ \draw[line width=.4pt] (9.8,\yy)--(64.5,\yy);
+ \squaregate{14.5}{\yy}{V}
+}
+% Standard ZZ(theta) interaction symbols; theta=2 beta, including the ring closure.
+\foreach \xx/\ja/\jb in {20.5/0/1,31.5/1/2,42.5/2/3,53.5/3/0}{
+ \pgfmathsetmacro{\ya}{7+6.8*\ja}
+ \pgfmathsetmacro{\yb}{7+6.8*\jb}
+ \pgfmathsetmacro{\ym}{(\ya+\yb)/2}
+ \draw[line width=.4pt] (\xx,\ya)--(\xx,\yb);
+ \fill[Ink] (\xx,\ya) circle[radius=.45mm] (\xx,\yb) circle[radius=.45mm];
+ \node[anchor=west,font=\fontsize{8}{9.5}\selectfont] at (\xx+.9,\ym) {$\mathrm{ZZ}(2\beta)$};
+}
+\end{tikzpicture}
+\end{document}

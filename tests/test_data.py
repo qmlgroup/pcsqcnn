@@ -389,3 +389,36 @@ def test_prepared_mnist_splits_to_moves_both_datasets_and_preserves_metadata() -
     assert torch.equal(moved.test.images, splits.test.images)
     assert torch.equal(moved.test.labels, splits.test.labels)
     assert moved.test.metadata == {"split": "test"}
+
+
+def test_separate_test_offset_reuses_the_benchmark_test_split_and_limits_training_offsets() -> None:
+    torch.manual_seed(0)
+    train_images = torch.randint(1, 256, (200, 4, 4), dtype=torch.uint8)
+    test_images = torch.randint(1, 256, (50, 4, 4), dtype=torch.uint8)
+    train_labels = torch.arange(200, dtype=torch.long) % 2
+    test_labels = torch.arange(50, dtype=torch.long) % 2
+    common = dict(
+        train_images=train_images,
+        train_labels=train_labels,
+        test_images=test_images,
+        test_labels=test_labels,
+        samples_per_class=None,
+        image_size=16,
+        scaled_image_size=4,
+        seed=5,
+    )
+
+    benchmark = _prepare_mnist_splits_from_tensors(**common, max_offset=6)
+    small_train = _prepare_mnist_splits_from_tensors(**common, max_offset=1, test_max_offset=6)
+
+    assert torch.equal(small_train.test.images, benchmark.test.images)
+    assert small_train.test.metadata["max_offset"] == 6
+    assert small_train.train.metadata["max_offset"] == 1
+    # Every training digit lies inside the centred block widened by one pixel per side.
+    rows = small_train.train.images.amax(dim=2) > 0
+    columns = small_train.train.images.amax(dim=1) > 0
+    for mask in (rows, columns):
+        occupied = mask.nonzero()[:, 1]
+        assert occupied.min() >= 6 - 1 and occupied.max() <= 6 + 3 + 1
+    benchmark_rows = (benchmark.train.images.amax(dim=2) > 0).nonzero()[:, 1]
+    assert benchmark_rows.min() < 5 or benchmark_rows.max() > 10

@@ -665,10 +665,20 @@ class PennyLanePCSQCNN:
         """
 
         config = dict(model_config)
+        if config.get("multiplexer_kind", "general") != "general":
+            raise ValueError(
+                "PennyLanePCSQCNN supports only multiplexer_kind='general'; "
+                "use the Torch backend for local_3x3 models."
+            )
         if bool(config.get("reduce_readout_to_feature_distribution", False)):
             raise ValueError(
                 "PennyLanePCSQCNN supports only full readout. "
                 "Torch configs with reduce_readout_to_feature_distribution=True are not supported."
+            )
+        if config.get("encoding", "frqi") != "frqi":
+            raise ValueError(
+                "PennyLanePCSQCNN supports only the FRQI encoding. "
+                f"Got unsupported encoding={config['encoding']!r}."
             )
         shot_budget = config.get("shot_budget")
         if shot_budget not in (None, 0):

@@ -3,7 +3,8 @@
 The module provides the full state-space machinery used by the hybrid model:
 
 - FRQI-like image encoding into the canonical state contract
-  ``[B, X, CX, Y, CY, F]``;
+  ``[B, X, CX, Y, CY, F]``, and the amplitude encoding of the Hur-QCNN
+  baseline in the same contract;
 - Pauli-parameterized feature unitaries
   ``U(theta) = exp(i * sum_alpha theta_alpha P_alpha)``;
 - Fourier-domain helpers on the active index registers;
@@ -131,7 +132,9 @@ def _feature_qubits_from_pauli_parameter_count(parameter_count: int) -> int:
     )
 
 
+# Cached constants must remain usable by autograd after inference-only calls.
 @lru_cache(maxsize=None)
+@torch.inference_mode(False)
 def _pauli_basis_matrices(num_qubits: int) -> torch.Tensor:
     """Build the full multi-qubit Pauli basis in lexicographic order.
 
@@ -168,6 +171,7 @@ def _pauli_basis_matrices(num_qubits: int) -> torch.Tensor:
     return torch.stack(basis, dim=0)
 
 
+@torch.inference_mode(False)
 def _materialized_pauli_basis_matrices(
     num_qubits: int,
     *,
@@ -250,6 +254,63 @@ def pauli_coefficients_to_unitary(params: torch.Tensor) -> torch.Tensor:
     )
     generator = torch.einsum("...p,pij->...ij", params.to(dtype=complex_dtype), basis)
     return torch.linalg.matrix_exp(basis.new_tensor(1j) * generator)
+
+
+class _HermitianExponential(torch.autograd.Function):
+    """``U = exp(i H)`` for Hermitian ``H`` with an exact spectral backward pass.
+
+    Formula:
+        With ``H = V diag(lambda) V^dagger`` the forward pass returns
+        ``U = V diag(exp(i lambda)) V^dagger``. The Frechet derivative is
+        ``dU = V (F o (V^dagger dH V)) V^dagger`` with the divided differences
+        ``F[j, k] = (exp(i lambda_j) - exp(i lambda_k)) / (lambda_j - lambda_k)
+        = i exp(i (lambda_j + lambda_k) / 2) sinc((lambda_j - lambda_k) / 2)``,
+        and the backward pass applies its adjoint
+        ``grad_H = V (conj(F) o (V^dagger grad_U V)) V^dagger``.
+
+    Notes:
+        The sinc form keeps the divided differences finite and accurate for
+        (near-)degenerate spectra, where differentiating through ``eigh``
+        itself would divide by eigenvalue gaps.
+    """
+
+    @staticmethod
+    def forward(ctx, generator: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
+        eigenvalues, eigenvectors = torch.linalg.eigh(generator)
+        phases = torch.exp(1j * eigenvalues.to(dtype=generator.dtype))
+        ctx.save_for_backward(eigenvalues, eigenvectors)
+        return (eigenvectors * phases[..., None, :]) @ eigenvectors.conj().transpose(-1, -2)
+
+    @staticmethod
+    def backward(ctx, grad_unitary: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
+        eigenvalues, eigenvectors = ctx.saved_tensors
+        eigenvalues_j = eigenvalues[..., :, None]
+        eigenvalues_k = eigenvalues[..., None, :]
+        divided_differences = (
+            1j
+            * torch.exp(0.5j * (eigenvalues_j + eigenvalues_k))
+            * torch.sinc((eigenvalues_j - eigenvalues_k) / (2.0 * math.pi))
+        )
+        adjoint_vectors = eigenvectors.conj().transpose(-1, -2)
+        rotated = adjoint_vectors @ grad_unitary @ eigenvectors
+        return eigenvectors @ (divided_differences.conj() * rotated) @ adjoint_vectors
+
+
+def hermitian_exponential(generator: torch.Tensor) -> torch.Tensor:
+    """Return ``exp(i H)`` for Hermitian ``H`` with an exact spectral backward pass.
+
+    Contract:
+        ``generator`` has shape ``[..., n, n]``, a complex dtype, and must be
+        Hermitian on the last two axes. The result has the same shape and
+        dtype and is unitary up to the eigensolver precision.
+
+    Notes:
+        This is the double-precision host path used by the QCS and
+        Henderson baselines. ``pauli_coefficients_to_unitary`` keeps the
+        scaling-and-squaring path used by the PCS-QCNN multiplexers.
+    """
+
+    return _HermitianExponential.apply(generator)
 
 
 def _apply_qft_2d(state: torch.Tensor) -> torch.Tensor:
@@ -390,6 +451,7 @@ def _apply_unitary_to_active_axis_1d(
     return torch.movedim(transformed, 0, active_axis)
 
 
+@torch.inference_mode(False)
 def _materialized_fourier_junction_phase(
     active_dim: int,
     *,
@@ -657,19 +719,20 @@ class ModeMultiplexer2D(nn.Module):
         self.multiplexer_init_scale = float(multiplexer_init_scale)
         self.x_selected_condition_dim = 2 ** x_condition_qubits_to_use
         self.y_selected_condition_dim = 2 ** y_condition_qubits_to_use
-        pauli_parameter_count = 4 ** layout.feature_qubits
-        block_parameters = torch.empty(
-            (
-                self.x_selected_condition_dim,
-                self.y_selected_condition_dim,
-                layout.x_active_dim,
-                layout.y_active_dim,
-                pauli_parameter_count,
-            ),
-            dtype=dtype,
-        )
+        block_parameters = torch.empty(self._parameter_shape(), dtype=dtype)
         block_parameters.uniform_(0.0, self.multiplexer_init_scale)
         self.block_parameters = nn.Parameter(block_parameters)
+
+    def _parameter_shape(self) -> tuple[int, ...]:
+        return (
+            self.x_selected_condition_dim, self.y_selected_condition_dim,
+            self.layout.x_active_dim, self.layout.y_active_dim,
+            4 ** self.layout.feature_qubits,
+        )
+
+    def unitary_blocks(self) -> torch.Tensor:
+        """Return blocks ``[branch_x, branch_y, X, Y, F, F]``."""
+        return pauli_coefficients_to_unitary(self.block_parameters)
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         """Apply the selected feature block to every canonical state slice.
@@ -703,7 +766,7 @@ class ModeMultiplexer2D(nn.Module):
         x_remaining_condition_dim = cx_dim // self.x_selected_condition_dim
         y_remaining_condition_dim = cy_dim // self.y_selected_condition_dim
 
-        blocks = pauli_coefficients_to_unitary(self.block_parameters).to(dtype=state.dtype)
+        blocks = self.unitary_blocks().to(dtype=state.dtype)
         blocks = blocks.to(device=state.device)
 
         split_state = state.reshape(
@@ -718,6 +781,57 @@ class ModeMultiplexer2D(nn.Module):
         )
         transformed = torch.einsum("uvxyij,bxuryvwj->bxuryvwi", blocks, split_state)
         return transformed.reshape(batch_size, x_dim, cx_dim, y_dim, cy_dim, feature_dim)
+
+
+class LocalModeMultiplexer2D(ModeMultiplexer2D):
+    """Fourier multiplexer for a unitary spatial kernel supported inside 3x3.
+
+    Requires two feature qubits ordered ``(auxiliary, brightness)``. Each
+    selected pooling branch stores two independent U(4) coin generators,
+    ``block_parameters[branch_x, branch_y, axis, pauli]`` with trailing shape
+    ``[2, 16]``. The full Pauli basis and initialization follow the general
+    multiplexer, but coefficients are shared across every Fourier mode.
+
+    For the negative-exponent Torch FFT convention, let
+    ``Dx = diag(1,1,exp(-i wx),exp(-i wx))`` and
+    ``Dy = diag(1,exp(-i wy),1,exp(-i wy))``. The block is
+    ``Dy.adjoint() Cy Dy Dx.adjoint() Cx Dx``. Its inverse transform has
+    displacements only in ``{-1,0,1} x {-1,0,1}`` on the active periodic grid.
+    This is a restricted family of exactly PCS-equivariant unitary layers;
+    the subsequent pooling and classifier do not acquire label invariance.
+    """
+
+    def __init__(
+        self, layout: RegisterLayout2D, *, x_condition_qubits_to_use: int = 0,
+        y_condition_qubits_to_use: int = 0,
+        multiplexer_init_scale: float = 2.0 * math.pi,
+        dtype: torch.dtype = torch.float32,
+    ) -> None:
+        if layout.feature_qubits != 2:
+            raise ValueError("LocalModeMultiplexer2D requires exactly two feature qubits.")
+        super().__init__(
+            layout, x_condition_qubits_to_use=x_condition_qubits_to_use,
+            y_condition_qubits_to_use=y_condition_qubits_to_use,
+            multiplexer_init_scale=multiplexer_init_scale, dtype=dtype,
+        )
+
+    def _parameter_shape(self) -> tuple[int, ...]:
+        return self.x_selected_condition_dim, self.y_selected_condition_dim, 2, 16
+
+    def unitary_blocks(self) -> torch.Tensor:
+        coins = pauli_coefficients_to_unitary(self.block_parameters)
+        # Compute phases in the live parameter dtype/device, including after
+        # .double() or .to('cuda'); no stale float32 phase tables are cached.
+        def phases(size: int, selected: tuple[int, ...]) -> torch.Tensor:
+            modes = torch.arange(size, device=coins.device, dtype=self.block_parameters.dtype)
+            mask = self.block_parameters.new_tensor(selected)
+            return torch.exp((-2j * math.pi / size) * modes[:, None] * mask)
+
+        dx = phases(self.layout.x_active_dim, (0, 0, 1, 1))
+        dy = phases(self.layout.y_active_dim, (0, 1, 0, 1))
+        gx = dx.conj()[:, :, None] * coins[:, :, 0, None, :, :] * dx[:, None, :]
+        gy = dy.conj()[:, :, None] * coins[:, :, 1, None, :, :] * dy[:, None, :]
+        return gy[:, :, None, :, :, :] @ gx[:, :, :, None, :, :]
 
 
 class FrqiEncoder2D(nn.Module):
@@ -821,6 +935,89 @@ class FrqiEncoder2D(nn.Module):
             )
             feature_state = torch.cat((color_subspace, auxiliary_zeros), dim=-1)
 
+        return feature_state[:, :, None, :, None, :].to(dtype=self.complex_dtype)
+
+
+class AmplitudeEncoder2D(nn.Module):
+    """Amplitude-encode grayscale images into the canonical QCNN state layout.
+
+    The encoding of the Hur-QCNN baseline (``qcnn.hur``): the pixel values are
+    the amplitudes of the index registers and carry no feature qubit.
+
+    Args:
+        feature_qubits: Number of qubits in the feature register.
+        dtype: Real dtype used for the amplitudes before conversion to the
+            matching complex dtype.
+
+    Formula:
+        For an image ``x`` with pixels ``x_uv`` the encoder writes
+        ``psi[u, v, f] = sqrt(XY) * x_uv / ||x||_2`` for ``f = 0`` and ``0``
+        otherwise: the feature register starts in ``|0...0>``. An all-zero
+        image maps to the zero state.
+
+    Contract:
+        ``forward(images)`` expects shape ``[B, X, Y]`` containing normalized
+        grayscale images and returns a complex tensor of shape
+        ``[B, X, 1, Y, 1, F]`` where ``F = 2**feature_qubits``.
+
+    Notes:
+        The factor ``sqrt(XY)`` gives encoded samples the norm ``sqrt(XY)``
+        of ``FrqiEncoder2D``, so ``MarginalMeasurement2D`` returns normalized
+        probabilities for both encoders.
+    """
+
+    def __init__(
+        self,
+        feature_qubits: int = 1,
+        *,
+        dtype: torch.dtype = torch.float32,
+    ) -> None:
+        super().__init__()
+
+        if dtype not in {torch.float32, torch.float64}:
+            raise ValueError(f"dtype must be torch.float32 or torch.float64, got {dtype}.")
+        if feature_qubits < 1:
+            raise ValueError(f"feature_qubits must be at least 1, got {feature_qubits}.")
+
+        self.feature_qubits = feature_qubits
+        self.real_dtype = dtype
+        self.complex_dtype = _complex_dtype_for(dtype)
+
+    def forward(self, images: torch.Tensor) -> torch.Tensor:
+        """Encode a batch of square images into canonical complex states.
+
+        Args:
+            images: Real tensor with shape ``[B, X, Y]`` containing normalized
+                grayscale values.
+
+        Returns:
+            A complex tensor with shape ``[B, X, 1, Y, 1, F]``.
+
+        Raises:
+            ValueError: If ``images`` is not rank-3 or is not square.
+        """
+
+        if images.ndim != 3:
+            raise ValueError(
+                "AmplitudeEncoder2D expects image tensors with shape [B, X, Y], "
+                f"got {tuple(images.shape)}."
+            )
+
+        batch_size, x_dim, y_dim = images.shape
+        if x_dim != y_dim:
+            raise ValueError(f"Input images must be square, got X={x_dim}, Y={y_dim}.")
+
+        layout = RegisterLayout2D(image_size=x_dim, feature_qubits=self.feature_qubits)
+        images = images.to(dtype=self.real_dtype)
+        norms = images.reshape(batch_size, -1).norm(dim=1).clamp_min(torch.finfo(self.real_dtype).tiny)
+        amplitudes = images / norms[:, None, None] * math.sqrt(x_dim * y_dim)
+
+        feature_state = torch.zeros(
+            (batch_size, x_dim, y_dim, layout.feature_dim),
+            dtype=self.real_dtype,
+            device=images.device,
+        )
+        feature_state[..., 0] = amplitudes
         return feature_state[:, :, None, :, None, :].to(dtype=self.complex_dtype)
 
 

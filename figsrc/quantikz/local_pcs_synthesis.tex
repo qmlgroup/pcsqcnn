@@ -1,0 +1,25 @@
+\documentclass[border=2pt]{standalone}
+\usepackage{amsmath,amssymb,quantikz}
+\begin{document}
+\begin{minipage}{130mm}
+\fontsize{9}{11}\selectfont
+\textbf{(a)}\quad Local Fourier block $\mathcal B_m$\par\vspace{3mm}
+\centering
+\begin{quantikz}[thin lines,row sep={.42cm,between origins},column sep=.27cm]
+\lstick{$\ket{k_x}$}&\qwbundle{n_x}&\ctrl{2}&\qw&\ctrl{2}&\qw&\qw&\qw&\qw\\
+\lstick{$\ket{k_y}$}&\qwbundle{n_y}&\qw&\qw&\qw&\ctrl{2}&\qw&\ctrl{2}&\qw\\
+\lstick{$f$}&\qw&\gate{P_x}&\gate[2]{C_{x,m}}&\gate{P_x^\dagger}&\qw&\gate[2]{C_{y,m}}&\qw&\qw\\
+\lstick{$c$}&\qw&\qw&\qw&\qw&\gate{P_y}&\qw&\gate{P_y^\dagger}&\qw
+\end{quantikz}
+\par\vspace{5mm}
+\raggedright\textbf{(b)}\quad Binary phase decomposition of $D_j$ ($n_j=3$)\par\vspace{3mm}
+\centering
+\begin{quantikz}[thin lines,row sep={.42cm,between origins},column sep=.35cm]
+\lstick{$\ket{k_{j,2}}$}&\ctrl{3}&\qw&\qw&\qw\\
+\lstick{$\ket{k_{j,1}}$}&\qw&\ctrl{2}&\qw&\qw\\
+\lstick{$\ket{k_{j,0}}$}&\qw&\qw&\ctrl{1}&\qw\\
+\lstick{$q_j$}&\gate{P(-\pi)}&\gate{P(-\pi/2)}&\gate{P(-\pi/4)}&\qw
+\end{quantikz}
+\par\vspace{2mm}
+\end{minipage}
+\end{document}

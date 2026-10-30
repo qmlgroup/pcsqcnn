@@ -353,6 +353,7 @@ def _prepare_mnist_splits_from_tensors(
     scaled_image_size: int | None = None,
     max_offset: int = 0,
     seed: int,
+    test_max_offset: int | None = None,
 ) -> PreparedMnistSplits:
     """Build prepared train/test splits from already-loaded MNIST tensors.
 
@@ -403,6 +404,12 @@ def _prepare_mnist_splits_from_tensors(
         scaled_image_size=resolved_scaled_image_size,
         max_offset=max_offset,
     )
+    resolved_test_max_offset = max_offset if test_max_offset is None else test_max_offset
+    _validate_translation_config(
+        image_size=image_size,
+        scaled_image_size=resolved_scaled_image_size,
+        max_offset=resolved_test_max_offset,
+    )
 
     if samples_per_class is None:
         selected_indices = torch.arange(train_labels.shape[0])
@@ -432,7 +439,7 @@ def _prepare_mnist_splits_from_tensors(
         prepared_test_images,
         image_size=image_size,
         scaled_image_size=resolved_scaled_image_size,
-        max_offset=max_offset,
+        max_offset=resolved_test_max_offset,
         seed=seed,
         split="test",
     )
@@ -464,6 +471,7 @@ def _prepare_mnist_splits_from_tensors(
                 **common_metadata,
                 "split": "test",
                 "test_split": "standard",
+                "max_offset": resolved_test_max_offset,
             },
         ),
     )
@@ -478,6 +486,7 @@ def prepare_mnist_splits(
     max_offset: int = 0,
     seed: int = 0,
     download: bool = True,
+    test_max_offset: int | None = None,
 ) -> PreparedMnistSplits:
     """Prepare deterministic MNIST train/test splits for the qcnn workflow.
 
@@ -498,6 +507,11 @@ def prepare_mnist_splits(
             ``None`` and ``max_offset == 0``, the seed does not affect the
             returned tensors.
         download: Forwarded to ``torchvision.datasets.MNIST``.
+        test_max_offset: Optional translation magnitude of the test split
+            only; ``None`` reuses ``max_offset``. The test translations depend
+            only on ``seed`` and this magnitude, so a run trained with a
+            smaller ``max_offset`` is tested on exactly the test set of runs
+            trained with ``max_offset == test_max_offset``.
 
     Returns:
         Prepared train/test tensor datasets. The standard MNIST test split
@@ -544,4 +558,66 @@ def prepare_mnist_splits(
         scaled_image_size=resolved_scaled_image_size,
         max_offset=max_offset,
         seed=seed,
+        test_max_offset=test_max_offset,
     )
+
+
+_VALIDATION_SPLIT_SEED_OFFSET = 3_000_017
+
+
+def stratified_validation_split(
+    dataset: TensorImageDataset,
+    *,
+    validation_per_class: int,
+    seed: int,
+) -> tuple[TensorImageDataset, TensorImageDataset]:
+    """Split a labelled dataset into class-balanced training and validation parts.
+
+    Args:
+        dataset: Dataset to split, typically the prepared training split.
+        validation_per_class: Number of samples of every class moved into the
+            validation part.
+        seed: Seed of the internal generator that chooses the validation
+            samples. It is offset from the subset/translation seeds so the
+            split does not reuse their random streams.
+
+    Returns:
+        ``(training, validation)`` datasets. Both keep the original sample
+        order, share no samples, and carry the source metadata extended with
+        ``split``, ``validation_per_class``, and ``validation_seed``.
+
+    Raises:
+        ValueError: If ``validation_per_class`` is not positive or a class has
+            no sample left for training.
+    """
+
+    if validation_per_class < 1:
+        raise ValueError(f"validation_per_class must be positive, got {validation_per_class}.")
+
+    generator = torch.Generator()
+    generator.manual_seed(int(seed) + _VALIDATION_SPLIT_SEED_OFFSET)
+    labels = dataset.labels.cpu()
+    validation_indices: list[torch.Tensor] = []
+    for class_id in torch.unique(labels, sorted=True):
+        class_indices = torch.nonzero(labels == class_id, as_tuple=False).flatten()
+        if class_indices.numel() <= validation_per_class:
+            raise ValueError(
+                f"Class {int(class_id)} has {class_indices.numel()} samples, "
+                f"cannot hold out {validation_per_class} and keep training samples."
+            )
+        permutation = torch.randperm(class_indices.numel(), generator=generator)
+        validation_indices.append(class_indices[permutation[:validation_per_class]])
+
+    is_validation = torch.zeros(labels.shape[0], dtype=torch.bool)
+    is_validation[torch.cat(validation_indices)] = True
+    split_metadata = {"validation_per_class": validation_per_class, "validation_seed": int(seed)}
+
+    def subset(mask: torch.Tensor, split: str) -> TensorImageDataset:
+        indices = torch.nonzero(mask, as_tuple=False).flatten().to(dataset.images.device)
+        return TensorImageDataset(
+            dataset.images[indices],
+            dataset.labels[indices],
+            metadata={**dataset.metadata, **split_metadata, "split": split},
+        )
+
+    return subset(~is_validation, "train"), subset(is_validation, "validation")

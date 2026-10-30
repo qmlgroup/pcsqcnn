@@ -6,7 +6,18 @@ from dataclasses import dataclass
 
 from torch import nn
 
+from qcnn.henderson import HendersonBlockLayer2D
+from qcnn.hur import HurConvolutionLayer, HurPoolingLayer
+from qcnn.qcs import QCSIndexLayer2D
 from qcnn.quantum import ModeMultiplexer2D
+
+_QUANTUM_LAYER_TYPES = (
+    ModeMultiplexer2D,
+    HendersonBlockLayer2D,
+    QCSIndexLayer2D,
+    HurConvolutionLayer,
+    HurPoolingLayer,
+)
 
 
 @dataclass(frozen=True)
@@ -19,7 +30,12 @@ class TrainableLayerParameterStat:
 
 
 def _module_kind(module: nn.Module) -> str:
-    return "q" if isinstance(module, ModeMultiplexer2D) else "c"
+    return (
+        "q"
+        if isinstance(module, _QUANTUM_LAYER_TYPES)
+        or getattr(module, "_qcnn_quantum_parameter_module", False)
+        else "c"
+    )
 
 
 def collect_trainable_layer_parameter_stats(model: nn.Module) -> list[TrainableLayerParameterStat]:

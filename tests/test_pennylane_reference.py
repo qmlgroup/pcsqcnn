@@ -33,6 +33,11 @@ REFERENCE_MODULE = _load_reference_module()
 PennyLanePCSQCNN = REFERENCE_MODULE.PennyLanePCSQCNN
 
 
+def test_pennylane_reference_rejects_local_multiplexer():
+    with pytest.raises(ValueError, match="general"):
+        PennyLanePCSQCNN.from_torch_state({"multiplexer_kind": "local_3x3"}, {})
+
+
 def _make_torch_model(
     *,
     image_size: int,

@@ -167,9 +167,9 @@ def test_plot_article_figure_s2a_uses_log_y_scale_by_default(tmp_path: Path) -> 
     assert len(legends) == 2
     legend_labels = [[text.get_text() for text in legend.get_texts()] for legend in legends]
     assert [
-        "All quantum parameters",
-        "First quantum layer",
-        "Last quantum layer",
+        "All parameters",
+        "First layer",
+        "Last layer",
     ] in legend_labels
     assert [
         "Empirical-loss gradient",

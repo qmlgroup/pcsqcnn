@@ -41,6 +41,7 @@ from qcnn import (
 )
 from qcnn import automation as automation_module
 from qcnn import serialization as serialization_module
+from qcnn.json_artifacts import load_payload, save_json_payload
 
 
 def make_pcsqcnn_runner(
@@ -272,9 +273,11 @@ def test_load_model_checkpoint_rejects_wrong_checkpoint_type(tmp_path: Path) -> 
         load_model_checkpoint(checkpoint_path)
 
 
+@pytest.mark.parametrize("result_format", ["pt", "json"])
 def test_load_auto_training_run_and_reconstruct_saved_mnist_context(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    result_format: str,
 ) -> None:
     fake_splits = make_fake_mnist_splits()
 
@@ -287,9 +290,16 @@ def test_load_auto_training_run_and_reconstruct_saved_mnist_context(
     with pytest.warns(UserWarning, match="1/sqrt\\(XY\\)"):
         auto_training_result = run_mnist_auto_training(make_auto_training_config(tmp_path))
 
+    result_path = auto_training_result.output_directory / "result_seed7.pt"
+    if result_format == "json":
+        save_json_payload(load_payload(result_path), result_path.with_suffix(".json"))
+        result_path.unlink()
+        result_path = result_path.with_suffix(".json")
+
     with pytest.warns(UserWarning, match="1/sqrt\\(XY\\)"):
         loaded_run = load_auto_training_run(auto_training_result.output_directory, seed=7)
 
+    assert loaded_run.result_path == result_path
     assert loaded_run.training_history == auto_training_result.runs[0].history
     assert loaded_run.loss_name == "CrossEntropyLoss"
     assert loaded_run.model.__class__.__name__ == "PCSQCNN"

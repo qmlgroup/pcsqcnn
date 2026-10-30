@@ -1,0 +1,17 @@
+{
+  "samples": 4864,
+  "base_patterns": 19,
+  "all_translations": 256,
+  "unique_images": 4864,
+  "duplicate_images": 0,
+  "qcs_label_conflicts": 0,
+  "conflict_examples": [],
+  "raw_summed_within_count_max_difference": 0.0,
+  "raw_summed_optimal_weighted_accuracy": 0.5,
+  "stratum_weight": {
+    "5_pixels_label0": 0.25,
+    "5_pixels_label1": 0.25,
+    "10_pixels_label0": 0.25,
+    "10_pixels_label1": 0.25
+  }
+}

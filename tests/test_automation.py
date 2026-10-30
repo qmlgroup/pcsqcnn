@@ -1,5 +1,8 @@
+import json
 from dataclasses import replace
 from pathlib import Path
+import hashlib
+import json
 import warnings
 
 import pytest
@@ -785,3 +788,157 @@ def test_build_auto_training_manifest_task_formats_duplicate_user_warnings_once(
     assert captured.out.count("Warning duplicated warning") == 1
     assert captured.out.count("Warning another warning") == 1
     assert "UserWarning" not in captured.out
+
+
+def test_run_mnist_auto_training_warm_starts_every_seed_from_its_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(automation_module, "prepare_mnist_splits", fake_prepare_mnist_splits)
+    first = make_config(tmp_path / "first", seed_count=2)
+    first_result = run_mnist_auto_training(first)
+    checkpoint_pattern = str(first_result.output_directory / "checkpoint_final_seed{seed}.pt")
+    # Learning rate zero keeps the loaded weights, so the warm-started checkpoints must equal the initial ones.
+    warm = replace(
+        make_config(tmp_path / "warm", seed_count=2),
+        optimizer=OptimizerConfig(kind="adam", learning_rate=0.0),
+    )
+    warm = replace(warm, training=replace(warm.training, init_checkpoint=checkpoint_pattern))
+
+    warm_result = run_mnist_auto_training(warm)
+
+    for seed in (0, 1):
+        initial = torch.load(checkpoint_pattern.format(seed=seed), weights_only=False)["model_state"]
+        final = torch.load(warm_result.output_directory / f"checkpoint_final_seed{seed}.pt", weights_only=False)["model_state"]
+        for name, value in initial.items():
+            assert torch.equal(final[name], value), (seed, name)
+    manifest = json.loads(warm_result.manifest_path.read_text())
+    assert manifest["resolved_config"]["training"]["init_checkpoint"] == checkpoint_pattern
+    assert "init_checkpoint" not in json.loads(first_result.manifest_path.read_text())["resolved_config"]["training"]
+
+
+def test_run_mnist_auto_training_rejects_a_warm_start_checkpoint_of_another_model(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(automation_module, "prepare_mnist_splits", fake_prepare_mnist_splits)
+    first_result = run_mnist_auto_training(make_config(tmp_path / "first"))
+    other = make_config(tmp_path / "other", model_kind="classical_cnn")
+    other = replace(
+        other,
+        training=replace(other.training, init_checkpoint=str(first_result.output_directory / "checkpoint_final_seed{seed}.pt")),
+    )
+
+    with pytest.raises(ValueError, match="model specification"):
+        run_mnist_auto_training(other)
+
+
+@pytest.mark.parametrize(("seed_count", "automatic_directory"), [(1, False), (1, True), (3, True)])
+def test_resumed_training_matches_uninterrupted_run(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, seed_count: int, automatic_directory: bool,
+) -> None:
+    monkeypatch.setattr(automation_module, "prepare_mnist_splits", fake_prepare_mnist_splits)
+    base = make_config(
+        tmp_path,
+        model_kind="custom_tiny",
+        num_epochs=3,
+        snapshot_epochs=(2,),
+        test_evaluation_interval_epochs=2,
+    )
+    base = replace(base, seeds=SeedConfig(base_seed=0, seed_count=seed_count))
+    complete_config = replace(base, output=replace(base.output, directory_name="complete"))
+    restarted_config = replace(base, output=replace(
+        base.output, root=tmp_path / "interrupted",
+        directory_name=None if automatic_directory else "restarted", use_timestamp_dir=automatic_directory,
+    ))
+    complete = run_mnist_auto_training(complete_config, save_training_state=True)
+    interrupted_seed = 1 if seed_count > 1 else 0
+
+    class SimulatedInterruption(Exception):
+        pass
+
+    def interrupt_after_snapshot(seed, epoch, train_summary, test_summary, history) -> None:
+        del train_summary, test_summary, history
+        if seed == interrupted_seed and epoch == 2:
+            raise SimulatedInterruption
+
+    with pytest.raises(SimulatedInterruption):
+        run_mnist_auto_training(
+            restarted_config,
+            save_training_state=True,
+            seed_epoch_end_callback=interrupt_after_snapshot,
+        )
+    directory = next((tmp_path / "interrupted").iterdir())
+    resume_config = replace(restarted_config, output=replace(
+        restarted_config.output, directory_name=directory.name, use_timestamp_dir=False,
+    ))
+    completed_files = {
+        path: (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in directory.glob("*seed0.pt") if interrupted_seed > 0
+    }
+    trained_epochs = []
+    restored = run_mnist_auto_training(
+        resume_config, resume=True, save_training_state=True,
+        seed_epoch_end_callback=lambda seed, epoch, *args: trained_epochs.append((seed, epoch)),
+    )
+    assert trained_epochs == [(interrupted_seed, 3)] + [
+        (seed, epoch) for seed in range(interrupted_seed + 1, seed_count) for epoch in (1, 2, 3)
+    ]
+    for actual, expected in zip(restored.runs, complete.runs, strict=True):
+        assert actual.history.train_epoch == [1, 2, 3]
+        assert actual.history.test_epoch == [2, 3]
+        assert actual.history.train_loss == expected.history.train_loss
+        assert actual.history.test_loss == expected.history.test_loss
+        assert actual.final_test_summary == expected.final_test_summary
+        for name, value in expected.runner.model.state_dict().items():
+            torch.testing.assert_close(actual.runner.model.state_dict()[name], value, rtol=0, atol=0)
+        assert actual.collector_states == expected.collector_states
+    for path, saved in completed_files.items():
+        assert (path.read_bytes(), path.stat().st_mtime_ns) == saved
+
+
+@pytest.mark.parametrize("mismatch", ["source", "versions", "missing_record", "omitted_record", "checkpoint", "config"])
+def test_implementation_record_survives_interruption_and_guards_resume(monkeypatch, tmp_path, mismatch):
+    config = make_config(tmp_path, model_kind="custom_tiny", num_epochs=2, snapshot_epochs=(1,))
+    config = replace(config, output=replace(config.output, directory_name="recorded"))
+    record = {"source_sha256": {"model.py": "original"}, "versions": {"torch": str(torch.__version__)}}
+    path = config.output.root / "recorded" / "implementation.json"
+
+    def prepare(**kwargs):
+        assert json.loads(path.read_text()) == record  # Already durable before dataset/model preparation.
+        return fake_prepare_mnist_splits(**kwargs)
+
+    monkeypatch.setattr(automation_module, "prepare_mnist_splits", prepare)
+    def interrupt(*args):
+        raise InterruptedError("after checkpoint")
+
+    with pytest.raises(InterruptedError):
+        run_mnist_auto_training(config, save_training_state=True, implementation=record,
+                                seed_epoch_end_callback=interrupt)
+    original = path.read_bytes()
+    checkpoint = path.with_name("checkpoint_epoch1_seed0.pt")
+    payload = torch.load(checkpoint, weights_only=False)
+    assert payload["training_state"]["implementation_sha256"] == hashlib.sha256(original).hexdigest()
+    requested = json.loads(original)
+    message = "implementation"
+    if mismatch == "source":
+        requested["source_sha256"]["model.py"] = "edited"
+    elif mismatch == "versions":
+        requested["versions"]["torch"] = "different"
+    elif mismatch == "missing_record":
+        path.unlink()
+    elif mismatch == "omitted_record":
+        requested = None
+    elif mismatch == "checkpoint":
+        payload["training_state"]["implementation_sha256"] = "foreign checkpoint"
+        torch.save(payload, checkpoint)
+    else:
+        config = replace(config, optimizer=replace(config.optimizer, learning_rate=0.5))
+        message = "configuration"
+    def forbidden(*args, **kwargs):
+        raise AssertionError("must reject before any training step")
+    monkeypatch.setattr(automation_module.ImageClassifierRunner, "fit", forbidden)
+    with pytest.raises(ValueError, match=message):
+        run_mnist_auto_training(config, resume=True, save_training_state=True, implementation=requested)
+    if mismatch != "missing_record":
+        assert path.read_bytes() == original

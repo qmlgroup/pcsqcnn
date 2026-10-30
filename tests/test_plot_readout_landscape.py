@@ -169,8 +169,8 @@ def test_plot_article_figure_s3_panel_masks_low_valid_cells_and_sets_new_axis_la
 
     figure = plot_figure_s3.plot_article_figure_s3_panel(panel=panels[0])
 
-    assert figure.axes[0].get_xlabel() == "Local shot-noise axis 1 (sigma)"
-    assert figure.axes[0].get_ylabel() == "Local shot-noise axis 2 (sigma)"
+    assert figure.axes[0].get_xlabel() == r"Local axis 1 ($\sigma$)"
+    assert figure.axes[0].get_ylabel() == r"Local axis 2 ($\sigma$)"
     masked = figure.axes[0].images[0].get_array()
     assert figure.axes[0].images[0].norm.vmin == pytest.approx(0.2)
     assert figure.axes[0].images[0].norm.vmax == pytest.approx(0.8)

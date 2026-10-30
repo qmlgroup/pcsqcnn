@@ -4,6 +4,7 @@ import pytest
 import torch
 
 from qcnn import (
+    AmplitudeEncoder2D,
     FiniteShotHistogram2D,
     FrqiEncoder2D,
     MarginalMeasurement2D,
@@ -817,3 +818,19 @@ def test_finite_shot_histogram_sample_repeated_histograms_matches_chunked_sampli
     repeated_b = histogram.sample_repeated_histograms(probabilities, repetitions=5, block_size=2)
 
     assert torch.allclose(repeated_a, repeated_b)
+
+
+def test_amplitude_encoder_loads_normalized_pixels_into_the_index_registers() -> None:
+    images = torch.rand(3, 4, 4, dtype=torch.float64)
+    images[2] = 0.0
+
+    state = AmplitudeEncoder2D(feature_qubits=2, dtype=torch.float64)(images)
+
+    assert state.shape == (3, 4, 1, 4, 1, 4)
+    assert state.dtype == torch.complex128
+    assert torch.count_nonzero(state[..., 1:]) == 0
+    expected = 4.0 * images[:2] / images[:2].reshape(2, -1).norm(dim=1)[:, None, None]
+    assert torch.allclose(state[:2, :, 0, :, 0, 0].real, expected)
+    # Norm sqrt(XY) as for the FRQI encoder, so the marginal measurement is normalized.
+    assert torch.allclose(MarginalMeasurement2D()(state[:2]).sum(dim=(1, 2, 3)), torch.ones(2, dtype=torch.float64))
+    assert torch.count_nonzero(state[2]) == 0

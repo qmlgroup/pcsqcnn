@@ -1,0 +1,16 @@
+\documentclass[tikz,border=2pt]{standalone}
+\usepackage{quantikz}
+\usepackage{physics}
+
+\begin{document}
+\tikzset{
+operator/.append style={fill=teal!8},
+meter/.append style={fill=orange!18},
+}
+\begin{quantikz}[thin lines,row sep=0.33cm, column sep=0.3cm]
+\lstick{$\cdots$} & \gate[wires=4]{F_{N}^{\dagger}} & \qw & \gate[wires=3]{F_{N/2}} & \qw \\
+\lstick{$\ket{q_1}$} & \ghost{F_{N}^{\dagger}} & \qw & \ghost{F_{N/2}} & \qw \\
+\lstick{$\ket{q_0}$} & \ghost{F_{N}^{\dagger}} & \qw & \ghost{F_{N/2}} & \qw \\
+\lstick{$\ket{s}$} & \ghost{F_{N}^{\dagger}} & \qw & \meter{} & \cw
+\end{quantikz}
+\end{document}

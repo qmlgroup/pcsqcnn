@@ -27,10 +27,12 @@ from torch import nn
 
 from qcnn.layout import RegisterLayout2D, move_active_qubit_to_condition
 from qcnn.quantum import (
+    AmplitudeEncoder2D,
     FiniteShotHistogram2D,
     FrqiEncoder2D,
     MarginalMeasurement2D,
     ModeMultiplexer2D,
+    LocalModeMultiplexer2D,
     _apply_fourier_junction_2d,
     _apply_iqft_2d,
     _apply_qft_2d,
@@ -70,10 +72,14 @@ def _make_multiplexers(
     *,
     multiplexer_init_scale: float,
     dtype: torch.dtype,
+    multiplexer_kind: str = "general",
 ) -> nn.ModuleList:
+    kinds = {"general": ModeMultiplexer2D, "local_3x3": LocalModeMultiplexer2D}
+    if multiplexer_kind not in kinds:
+        raise ValueError("multiplexer_kind must be 'general' or 'local_3x3'.")
     return nn.ModuleList(
         [
-            ModeMultiplexer2D(
+            kinds[multiplexer_kind](
                 layout,
                 x_condition_qubits_to_use=0 if layer_idx == 0 else 1,
                 y_condition_qubits_to_use=0 if layer_idx == 0 else 1,
@@ -152,6 +158,11 @@ class PCSQCNN(nn.Module):
             feature-register distribution with trailing shape ``[1, 1, F]``.
             This Torch-only mode is outside the PennyLane/article reference
             contract, which supports full readout only.
+        encoding: ``"frqi"`` for the article's ``FrqiEncoder2D`` or
+            ``"amplitude"`` for the Hur-QCNN amplitude encoding
+            ``AmplitudeEncoder2D``, which ignores ``brightness_range``. The
+            amplitude encoding is outside the PennyLane/article reference
+            contract.
         use_reduced_fourier_junction: Whether to replace each explicit
             ``IQFT -> move_active_qubit_to_condition -> QFT`` triple with the
             analytically equivalent reduced junction helper.
@@ -159,6 +170,10 @@ class PCSQCNN(nn.Module):
             Pauli-coefficient initialization interval used by every trainable
             multiplexer block. Each coefficient is sampled from
             ``Uniform(0, multiplexer_init_scale)``.
+        multiplexer_kind: ``"general"`` uses independent Fourier-mode blocks.
+            ``"local_3x3"`` uses two shared U(4) coins per branch and requires
+            two feature qubits. Each quantum convolution has spatial radius
+            one on its active periodic grid; pooling/readout are unchanged.
         dtype: Real dtype used by the encoder and multiplexer parameters.
 
     Formula:
@@ -192,8 +207,10 @@ class PCSQCNN(nn.Module):
         brightness_range: tuple[float, float] = (0.0, math.pi),
         shot_budget: int | None = None,
         reduce_readout_to_feature_distribution: bool = False,
+        encoding: str = "frqi",
         use_reduced_fourier_junction: bool = True,
         multiplexer_init_scale: float = 2.0 * math.pi,
+        multiplexer_kind: str = "general",
         dtype: torch.dtype = torch.float32,
     ) -> None:
         super().__init__()
@@ -202,6 +219,8 @@ class PCSQCNN(nn.Module):
             raise ValueError(f"num_classes must be positive, got {num_classes}.")
         if feature_qubits < 1:
             raise ValueError(f"feature_qubits must be at least 1, got {feature_qubits}.")
+        if encoding not in {"frqi", "amplitude"}:
+            raise ValueError(f"encoding must be 'frqi' or 'amplitude', got {encoding!r}.")
 
         self.layer_layouts = _build_layer_layouts(
             image_size=image_size,
@@ -216,12 +235,18 @@ class PCSQCNN(nn.Module):
         self.reduce_readout_to_feature_distribution = bool(reduce_readout_to_feature_distribution)
         self.use_reduced_fourier_junction = use_reduced_fourier_junction
         self.multiplexer_init_scale = float(multiplexer_init_scale)
-        self.encoder = FrqiEncoder2D(
-            feature_qubits=feature_qubits,
-            brightness_range=brightness_range,
-            dtype=dtype,
-        )
-        self.brightness_range = self.encoder.brightness_range
+        self.multiplexer_kind = multiplexer_kind
+        self.encoding = encoding
+        if encoding == "frqi":
+            self.encoder = FrqiEncoder2D(
+                feature_qubits=feature_qubits,
+                brightness_range=brightness_range,
+                dtype=dtype,
+            )
+            self.brightness_range = self.encoder.brightness_range
+        else:
+            self.encoder = AmplitudeEncoder2D(feature_qubits=feature_qubits, dtype=dtype)
+            self.brightness_range = None
         self.measurement = MarginalMeasurement2D()
         self.readout_histogram = FiniteShotHistogram2D(shot_budget=shot_budget)
         self.shot_budget = self.readout_histogram.shot_budget
@@ -229,6 +254,7 @@ class PCSQCNN(nn.Module):
             self.layer_layouts,
             multiplexer_init_scale=self.multiplexer_init_scale,
             dtype=dtype,
+            multiplexer_kind=multiplexer_kind,
         )
         self.readout_spatial_shape = (
             (1, 1, final_layout.feature_dim)
@@ -238,7 +264,16 @@ class PCSQCNN(nn.Module):
         self.classifier = nn.Linear(
             self.readout_spatial_shape[0] * self.readout_spatial_shape[1] * self.readout_spatial_shape[2],
             num_classes,
+            dtype=dtype,
         )
+
+    def _apply(self, fn, recurse: bool = True):
+        result = super()._apply(fn, recurse=recurse)
+        self.encoder.real_dtype = self.classifier.weight.dtype
+        self.encoder.complex_dtype = (
+            torch.complex128 if self.classifier.weight.dtype == torch.float64 else torch.complex64
+        )
+        return result
 
     def exact_quantum_readout_probabilities(self, images: torch.Tensor) -> torch.Tensor:
         """Return exact measured readout probabilities before finite-shot sampling."""
@@ -411,6 +446,7 @@ class PCSQCNNNoQFT(nn.Module):
         self.classifier = nn.Linear(
             self.readout_spatial_shape[0] * self.readout_spatial_shape[1] * self.readout_spatial_shape[2],
             num_classes,
+            dtype=dtype,
         )
 
         r_unitary_buffer_names: list[str] = []
@@ -429,6 +465,24 @@ class PCSQCNNNoQFT(nn.Module):
             r_adjoint_buffer_names.append(adjoint_name)
         self.r_unitary_buffer_names = tuple(r_unitary_buffer_names)
         self.r_adjoint_buffer_names = tuple(r_adjoint_buffer_names)
+
+    def _apply(self, fn, recurse: bool = True):
+        def preserve_complex(tensor):
+            # Module.to(real_dtype) would otherwise discard the imaginary part
+            # of the fixed unitaries; float()/double() would leave them uncast.
+            if tensor.is_complex():
+                real = fn(tensor.real)
+                if real.is_complex():
+                    return fn(tensor)
+                return torch.complex(real, fn(tensor.imag))
+            return fn(tensor)
+
+        result = super()._apply(preserve_complex, recurse=recurse)
+        self.encoder.real_dtype = self.classifier.weight.dtype
+        self.encoder.complex_dtype = (
+            torch.complex128 if self.classifier.weight.dtype == torch.float64 else torch.complex64
+        )
+        return result
 
     def _layer_unitary_pair(self, layer_idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         return (

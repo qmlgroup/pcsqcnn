@@ -1,0 +1,10 @@
+\documentclass[border=2pt]{standalone}
+\input{crosses_style.tex}
+\begin{document}
+\begin{quantikz}[thin lines,row sep={.75cm,between origins},column sep=.95cm]
+\lstick{$\mathrm{Reg}\,x$}&\gate{V_{x1}^{\otimes4}}\gategroup[wires=4,steps=2,style={rounded corners,dashed,inner sep=3pt},label style={label position=above,yshift=.15cm}]{$\mathcal D_1\mathcal V_1$}&\gate[4]{e^{-iH_1}}&\gate{V_{x2}^{\otimes4}}\gategroup[wires=4,steps=2,style={rounded corners,dashed,inner sep=3pt},label style={label position=above,yshift=.15cm}]{$\mathcal D_2\mathcal V_2$}&\gate[4]{e^{-iH_2}}&\qw&\qw\\
+\lstick{$\mathrm{Reg}\,y$}&\gate{V_{y1}^{\otimes4}}&\qw&\gate{V_{y2}^{\otimes4}}&\qw&\qw&\qw\\
+\lstick{$\mathrm{Reg}\,f$}&\gate{V_{f1}}&\qw&\gate{V_{f2}}&\qw&\gate{W_f}&\qw\\
+\lstick{$\mathrm{Reg}\,c$}&\gate{V_{c1}}&\qw&\gate{V_{c2}}&\qw&\gate{W_c}&\qw
+\end{quantikz}
+\end{document}

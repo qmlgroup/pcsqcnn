@@ -1,0 +1,272 @@
+{
+  "pcs_seed0": {
+    "config": {
+      "kind": "pcs",
+      "seed": 0,
+      "epochs": 2000,
+      "batch_size": 4864,
+      "learning_rate": 0.01,
+      "qcs_depth": 2,
+      "dataset_sha256": "fe3c346c60616605c71a1cd17802f399c5eae0425c81a8c4eea56667fc546de6",
+      "source_sha256": {
+        "figure1_crosses.py": "2ab7eff6bcd267a66d012c7836b3b2eb3880d98f0f42e48d15a3a83cc42ce7b9",
+        "quantum.py": "da45438108c65950a23db8dadf3da972e91dac3273a0955d451db689871f7283",
+        "layout.py": "a4d16e5c3fb1072a25cf3106f9b566c7f889c31240b4412d2a7a12e3af338d58",
+        "baselines/sp_qcnn.py": "324e4636f9d3820d676cbe64c9869a3d1a6ecaa8ca73302c09161aac23543429"
+      },
+      "runner_sha256": "14d1a8e466222b642c24d8a43fce646a303f3a4a6c3b016f86c90374bda48fd9",
+      "dtype": "float32",
+      "initialization_std": 0.3,
+      "head_initialization_std": 0.1,
+      "optimizer": "Adam",
+      "head": "256 times blank-centered summed probabilities; affine 4 to 1"
+    },
+    "parameters": {
+      "quantum": 32,
+      "head": 5,
+      "total": 37
+    },
+    "final": {
+      "epoch": 2000,
+      "loss": 0.10118097066879272,
+      "accuracy": 1.0,
+      "strata": {
+        "5_pixels_label0": 1.0,
+        "5_pixels_label1": 1.0,
+        "10_pixels_label0": 1.0,
+        "10_pixels_label1": 1.0
+      },
+      "logit_min": -2.431846857070923,
+      "logit_max": 6.138896942138672
+    },
+    "elapsed_seconds": 24.17178093804978,
+    "checkpoint_sha256": "61ffe2fbf9e720490ba40f63138b1c2512e101eeff17f63e4296d3829c1a5c79",
+    "torch_version": "2.10.0+cu128",
+    "device": "NVIDIA GeForce RTX 5060 Ti"
+  },
+  "pcs_seed1": {
+    "config": {
+      "kind": "pcs",
+      "seed": 1,
+      "epochs": 2000,
+      "batch_size": 4864,
+      "learning_rate": 0.01,
+      "qcs_depth": 2,
+      "dataset_sha256": "fe3c346c60616605c71a1cd17802f399c5eae0425c81a8c4eea56667fc546de6",
+      "source_sha256": {
+        "figure1_crosses.py": "2ab7eff6bcd267a66d012c7836b3b2eb3880d98f0f42e48d15a3a83cc42ce7b9",
+        "quantum.py": "da45438108c65950a23db8dadf3da972e91dac3273a0955d451db689871f7283",
+        "layout.py": "a4d16e5c3fb1072a25cf3106f9b566c7f889c31240b4412d2a7a12e3af338d58",
+        "baselines/sp_qcnn.py": "324e4636f9d3820d676cbe64c9869a3d1a6ecaa8ca73302c09161aac23543429"
+      },
+      "runner_sha256": "14d1a8e466222b642c24d8a43fce646a303f3a4a6c3b016f86c90374bda48fd9",
+      "dtype": "float32",
+      "initialization_std": 0.3,
+      "head_initialization_std": 0.1,
+      "optimizer": "Adam",
+      "head": "256 times blank-centered summed probabilities; affine 4 to 1"
+    },
+    "parameters": {
+      "quantum": 32,
+      "head": 5,
+      "total": 37
+    },
+    "final": {
+      "epoch": 2000,
+      "loss": 0.0823405385017395,
+      "accuracy": 1.0,
+      "strata": {
+        "5_pixels_label0": 1.0,
+        "5_pixels_label1": 1.0,
+        "10_pixels_label0": 1.0,
+        "10_pixels_label1": 1.0
+      },
+      "logit_min": -2.6827030181884766,
+      "logit_max": 6.774165630340576
+    },
+    "elapsed_seconds": 24.06000542314723,
+    "checkpoint_sha256": "84af1795e6f3b45430ee78482846a6d8454b77abdc8652b3522ed6fc819d7ab3",
+    "torch_version": "2.10.0+cu128",
+    "device": "NVIDIA GeForce RTX 5060 Ti"
+  },
+  "pcs_seed2": {
+    "config": {
+      "kind": "pcs",
+      "seed": 2,
+      "epochs": 2000,
+      "batch_size": 4864,
+      "learning_rate": 0.01,
+      "qcs_depth": 2,
+      "dataset_sha256": "fe3c346c60616605c71a1cd17802f399c5eae0425c81a8c4eea56667fc546de6",
+      "source_sha256": {
+        "figure1_crosses.py": "2ab7eff6bcd267a66d012c7836b3b2eb3880d98f0f42e48d15a3a83cc42ce7b9",
+        "quantum.py": "da45438108c65950a23db8dadf3da972e91dac3273a0955d451db689871f7283",
+        "layout.py": "a4d16e5c3fb1072a25cf3106f9b566c7f889c31240b4412d2a7a12e3af338d58",
+        "baselines/sp_qcnn.py": "324e4636f9d3820d676cbe64c9869a3d1a6ecaa8ca73302c09161aac23543429"
+      },
+      "runner_sha256": "14d1a8e466222b642c24d8a43fce646a303f3a4a6c3b016f86c90374bda48fd9",
+      "dtype": "float32",
+      "initialization_std": 0.3,
+      "head_initialization_std": 0.1,
+      "optimizer": "Adam",
+      "head": "256 times blank-centered summed probabilities; affine 4 to 1"
+    },
+    "parameters": {
+      "quantum": 32,
+      "head": 5,
+      "total": 37
+    },
+    "final": {
+      "epoch": 2000,
+      "loss": 0.057000987231731415,
+      "accuracy": 1.0,
+      "strata": {
+        "5_pixels_label0": 1.0,
+        "5_pixels_label1": 1.0,
+        "10_pixels_label0": 1.0,
+        "10_pixels_label1": 1.0
+      },
+      "logit_min": -3.1093149185180664,
+      "logit_max": 7.9039998054504395
+    },
+    "elapsed_seconds": 24.045514411991462,
+    "checkpoint_sha256": "db214b04a52574c682832656ceeece46df95de42ebfb99c0a30ea3b9dd8d164d",
+    "torch_version": "2.10.0+cu128",
+    "device": "NVIDIA GeForce RTX 5060 Ti"
+  },
+  "qcs_seed0": {
+    "config": {
+      "kind": "qcs",
+      "seed": 0,
+      "epochs": 2000,
+      "batch_size": 4864,
+      "learning_rate": 0.01,
+      "qcs_depth": 2,
+      "dataset_sha256": "fe3c346c60616605c71a1cd17802f399c5eae0425c81a8c4eea56667fc546de6",
+      "source_sha256": {
+        "figure1_crosses.py": "2ab7eff6bcd267a66d012c7836b3b2eb3880d98f0f42e48d15a3a83cc42ce7b9",
+        "quantum.py": "da45438108c65950a23db8dadf3da972e91dac3273a0955d451db689871f7283",
+        "layout.py": "a4d16e5c3fb1072a25cf3106f9b566c7f889c31240b4412d2a7a12e3af338d58",
+        "baselines/sp_qcnn.py": "324e4636f9d3820d676cbe64c9869a3d1a6ecaa8ca73302c09161aac23543429"
+      },
+      "runner_sha256": "14d1a8e466222b642c24d8a43fce646a303f3a4a6c3b016f86c90374bda48fd9",
+      "dtype": "float32",
+      "initialization_std": 0.3,
+      "head_initialization_std": 0.1,
+      "optimizer": "Adam",
+      "head": "256 times blank-centered summed probabilities; affine 4 to 1"
+    },
+    "parameters": {
+      "quantum": 46,
+      "head": 5,
+      "total": 51
+    },
+    "final": {
+      "epoch": 2000,
+      "loss": 0.6075848340988159,
+      "accuracy": 0.6767985224723816,
+      "strata": {
+        "5_pixels_label0": 0.421875,
+        "5_pixels_label1": 0.98828125,
+        "10_pixels_label0": 0.36083984375,
+        "10_pixels_label1": 0.9361979365348816
+      },
+      "logit_min": -2.85720157623291,
+      "logit_max": 5.349634170532227
+    },
+    "elapsed_seconds": 45.2683683980722,
+    "checkpoint_sha256": "04fce95fff5c828f9cac1f07d9a3d450cf0d897e0e908d14673e5da8065c96f4",
+    "torch_version": "2.10.0+cu128",
+    "device": "NVIDIA GeForce RTX 5060 Ti"
+  },
+  "qcs_seed1": {
+    "config": {
+      "kind": "qcs",
+      "seed": 1,
+      "epochs": 2000,
+      "batch_size": 4864,
+      "learning_rate": 0.01,
+      "qcs_depth": 2,
+      "dataset_sha256": "fe3c346c60616605c71a1cd17802f399c5eae0425c81a8c4eea56667fc546de6",
+      "source_sha256": {
+        "figure1_crosses.py": "2ab7eff6bcd267a66d012c7836b3b2eb3880d98f0f42e48d15a3a83cc42ce7b9",
+        "quantum.py": "da45438108c65950a23db8dadf3da972e91dac3273a0955d451db689871f7283",
+        "layout.py": "a4d16e5c3fb1072a25cf3106f9b566c7f889c31240b4412d2a7a12e3af338d58",
+        "baselines/sp_qcnn.py": "324e4636f9d3820d676cbe64c9869a3d1a6ecaa8ca73302c09161aac23543429"
+      },
+      "runner_sha256": "14d1a8e466222b642c24d8a43fce646a303f3a4a6c3b016f86c90374bda48fd9",
+      "dtype": "float32",
+      "initialization_std": 0.3,
+      "head_initialization_std": 0.1,
+      "optimizer": "Adam",
+      "head": "256 times blank-centered summed probabilities; affine 4 to 1"
+    },
+    "parameters": {
+      "quantum": 46,
+      "head": 5,
+      "total": 51
+    },
+    "final": {
+      "epoch": 2000,
+      "loss": 0.5289733409881592,
+      "accuracy": 0.7849935293197632,
+      "strata": {
+        "5_pixels_label0": 0.6416015625,
+        "5_pixels_label1": 0.984375,
+        "10_pixels_label0": 0.6435546875,
+        "10_pixels_label1": 0.8704427480697632
+      },
+      "logit_min": -3.107304334640503,
+      "logit_max": 3.011598825454712
+    },
+    "elapsed_seconds": 45.27369551197626,
+    "checkpoint_sha256": "48b92b69985d3d16c7247f9368a2221fe09bd982efdcf3f2bc0be154114b4fd0",
+    "torch_version": "2.10.0+cu128",
+    "device": "NVIDIA GeForce RTX 5060 Ti"
+  },
+  "qcs_seed2": {
+    "config": {
+      "kind": "qcs",
+      "seed": 2,
+      "epochs": 2000,
+      "batch_size": 4864,
+      "learning_rate": 0.01,
+      "qcs_depth": 2,
+      "dataset_sha256": "fe3c346c60616605c71a1cd17802f399c5eae0425c81a8c4eea56667fc546de6",
+      "source_sha256": {
+        "figure1_crosses.py": "2ab7eff6bcd267a66d012c7836b3b2eb3880d98f0f42e48d15a3a83cc42ce7b9",
+        "quantum.py": "da45438108c65950a23db8dadf3da972e91dac3273a0955d451db689871f7283",
+        "layout.py": "a4d16e5c3fb1072a25cf3106f9b566c7f889c31240b4412d2a7a12e3af338d58",
+        "baselines/sp_qcnn.py": "324e4636f9d3820d676cbe64c9869a3d1a6ecaa8ca73302c09161aac23543429"
+      },
+      "runner_sha256": "14d1a8e466222b642c24d8a43fce646a303f3a4a6c3b016f86c90374bda48fd9",
+      "dtype": "float32",
+      "initialization_std": 0.3,
+      "head_initialization_std": 0.1,
+      "optimizer": "Adam",
+      "head": "256 times blank-centered summed probabilities; affine 4 to 1"
+    },
+    "parameters": {
+      "quantum": 46,
+      "head": 5,
+      "total": 51
+    },
+    "final": {
+      "epoch": 2000,
+      "loss": 0.5696721076965332,
+      "accuracy": 0.6829833984375,
+      "strata": {
+        "5_pixels_label0": 0.646484375,
+        "5_pixels_label1": 0.68359375,
+        "10_pixels_label0": 0.60302734375,
+        "10_pixels_label1": 0.798828125
+      },
+      "logit_min": -3.9772634506225586,
+      "logit_max": 4.201951503753662
+    },
+    "elapsed_seconds": 45.26109068188816,
+    "checkpoint_sha256": "03e76016756b7163d9e2dba6d15252ab027fd560ab7c5bc5f8c4b3a68f68285d",
+    "torch_version": "2.10.0+cu128",
+    "device": "NVIDIA GeForce RTX 5060 Ti"
+  }
+}

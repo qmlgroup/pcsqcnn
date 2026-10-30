@@ -6,8 +6,6 @@ import sys
 from typing import TYPE_CHECKING, TypedDict, Sequence
 
 from qcnn import (
-    ARTICLE_PANEL_FIGSIZE,
-    configure_matplotlib_pdf_fonts,
     load_saved_parameter_stats_line,
     load_saved_training_histories,
     plot_temporal_summary,
@@ -15,14 +13,18 @@ from qcnn import (
 )
 from qcnn.article_figures import figure_2_fixed_run_directory_name
 
+from qcnn.matplotlib_config import MANUSCRIPT_HALF_FIGSIZE, configure_manuscript_plot_fonts
+
 if TYPE_CHECKING:
+    from matplotlib.axes import Axes
     from matplotlib.figure import Figure
     from qcnn import TemporalStatisticSummary, TrainingHistory
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
+FULL_MNIST_CLASSICAL_DIRECTORY = "full_mnist_classical_baselines"
 DEFAULT_FULL_MNIST_CLASSICAL_ARTIFACTS_ROOT = (
-    DEFAULT_ARTIFACTS_ROOT / "full_mnist_classical_baselines"
+    DEFAULT_ARTIFACTS_ROOT / FULL_MNIST_CLASSICAL_DIRECTORY
 )
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "figs"
 DEFAULT_SAMPLES_PER_CLASS = 1000
@@ -36,8 +38,8 @@ DEFAULT_CLASSICAL_EPOCH_GROUP_SIZE = 50
 DEFAULT_QUANTUM_EPOCH_GROUP_SIZE = 50
 DEFAULT_CLASSICAL_LIMIT_LABEL_Y_OFFSET_POINTS = 7
 DEFAULT_QUANTUM_LIMIT_LABEL_Y_OFFSET_POINTS = 4
-DEFAULT_CLASSICAL_LEGEND_LOCATION = "center right"
-DEFAULT_QUANTUM_LEGEND_LOCATION = "lower right"
+DEFAULT_CLASSICAL_LEGEND_LOCATION = "outside"
+DEFAULT_QUANTUM_LEGEND_LOCATION = "outside"
 
 
 class _Figure2SeriesConfig(TypedDict):
@@ -53,7 +55,7 @@ def _require_matplotlib():
     try:
         import matplotlib
 
-        configure_matplotlib_pdf_fonts(matplotlib)
+        configure_manuscript_plot_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(
@@ -102,7 +104,7 @@ def _expand_y_limits_for_reference_levels(ax, *, levels: Sequence[float]) -> Non
 
     reference_min = min(levels)
     reference_max = max(levels)
-    new_y_min = min(current_y_min, reference_min - 0.02 * current_span)
+    new_y_min = min(current_y_min, reference_min - 0.15 * current_span)
     new_y_max = max(current_y_max, reference_max + 0.05 * current_span)
     ax.set_ylim(new_y_min, new_y_max)
 
@@ -178,6 +180,7 @@ def _plot_figure_2_panel(
     upper_percentile: float,
     figsize: tuple[float, float],
     legend_location: str = DEFAULT_QUANTUM_LEGEND_LOCATION,
+    ax: Axes | None = None,
 ) -> Figure:
     plt = _require_matplotlib()
 
@@ -232,7 +235,11 @@ def _plot_figure_2_panel(
             }
         )
 
-    figure, ax = plt.subplots(figsize=figsize)
+    standalone = ax is None
+    if standalone:
+        figure, ax = plt.subplots(figsize=figsize)
+    else:
+        figure = ax.figure
     figure.patch.set_facecolor("white")
     ax.set_facecolor("white")
 
@@ -245,10 +252,11 @@ def _plot_figure_2_panel(
             summary=series["test_summary_focused"],
             color=config["color"],
             label=config["test_label"],
+            linewidth=0.9,
             band_alpha=0.30,
             limit_value=final_value,
             show_limit_label=True,
-            limit_label_x_axes=0.82,
+            limit_label_x_axes=0.65,
             limit_label_y_offset_points=config["limit_label_y_offset_points"],
         )
         plot_temporal_summary(
@@ -256,9 +264,17 @@ def _plot_figure_2_panel(
             summary=series["train_summary_focused"],
             color=config["color"],
             label=config["train_label"],
+            linewidth=0.9,
             linestyle=config["train_linestyle"],
             band_alpha=0.12,
         )
+        # The curve pools epochs; keep the final checkpoint statistic distinct.
+        final_epoch = series["test_summary_full"].epoch[-1]
+        if ((epoch_start is None or final_epoch >= epoch_start)
+                and (epoch_end is None or final_epoch <= epoch_end)):
+            ax.scatter([final_epoch], [final_value], s=9, color=config["color"],
+                       linewidths=0, zorder=4, label="_nolegend_")
+            all_epoch_values.append(final_epoch)
         all_epoch_values.extend(series["test_summary_focused"].epoch)
         all_epoch_values.extend(series["train_summary_focused"].epoch)
 
@@ -266,12 +282,25 @@ def _plot_figure_2_panel(
 
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Accuracy")
-    ax.set_xlim(min(all_epoch_values), max(all_epoch_values))
+    first_epoch, last_epoch = min(all_epoch_values), max(all_epoch_values)
+    # Leave room for the endpoint marker and the final tick label.
+    ax.set_xlim(first_epoch, last_epoch + 0.06 * max(last_epoch - first_epoch, 1.0))
     _expand_y_limits_for_reference_levels(ax, levels=final_test_levels)
-    legend_columns = 1 if len(series_configs) <= 2 else 2
-    ax.legend(loc=legend_location, framealpha=0.8, ncols=legend_columns)
-
-    figure.tight_layout()
+    if not standalone:
+        return figure
+    legend_columns = 2
+    if legend_location == "outside":
+        legend = ax.legend(
+            loc="upper center", bbox_to_anchor=(0.5, 0.99),
+            bbox_transform=figure.transFigure, frameon=False, ncols=legend_columns,
+            labelspacing=0.25, borderaxespad=0, handlelength=1.2,
+            columnspacing=0.8, handletextpad=0.4,
+        )
+        legend.set_in_layout(False)
+        figure.tight_layout(pad=0.35, rect=(0, 0, 1, 0.84))
+    else:
+        ax.legend(loc=legend_location, framealpha=0.8, ncols=legend_columns)
+        figure.tight_layout()
     return figure
 
 
@@ -317,7 +346,7 @@ def _load_available_classical_series_configs(
     series_configs: list[_Figure2SeriesConfig] = []
     run_directories: list[tuple[str, Path]] = []
     series_specifications = (
-        ("classical_cnn", "CNN", "Train CNN", "C0", "-."),
+        ("classical_cnn", "CNN", "Train CNN", "C0", "--"),
         ("classical_mlp", "MLP", "Train MLP", "C1", "--"),
     )
 
@@ -361,7 +390,7 @@ def _load_available_quantum_series_configs(
             "PCS-QCNN",
             "Train PCS-QCNN",
             "C0",
-            "-.",
+            "--",
         ),
         (
             "pcsqcnn_no_qft",
@@ -443,7 +472,8 @@ def plot_article_figure_2a(
     epoch_group_size: int = DEFAULT_CLASSICAL_EPOCH_GROUP_SIZE,
     lower_percentile: float = 25.0,
     upper_percentile: float = 75.0,
-    figsize: tuple[float, float] = ARTICLE_PANEL_FIGSIZE,
+    figsize: tuple[float, float] = MANUSCRIPT_HALF_FIGSIZE,
+    ax: Axes | None = None,
 ) -> Figure:
     """Render article Figure 2(a) from saved classical training histories."""
 
@@ -459,7 +489,7 @@ def plot_article_figure_2a(
                 test_label="CNN",
                 train_label="Train CNN",
                 color="C0",
-                train_linestyle="-.",
+                train_linestyle="--",
                 limit_label_y_offset_points=-DEFAULT_CLASSICAL_LIMIT_LABEL_Y_OFFSET_POINTS,
             ),
             _Figure2SeriesConfig(
@@ -481,6 +511,7 @@ def plot_article_figure_2a(
         upper_percentile=upper_percentile,
         figsize=figsize,
         legend_location=DEFAULT_CLASSICAL_LEGEND_LOCATION,
+        ax=ax,
     )
 
 
@@ -494,7 +525,8 @@ def plot_article_figure_2b(
     epoch_group_size: int = DEFAULT_QUANTUM_EPOCH_GROUP_SIZE,
     lower_percentile: float = 25.0,
     upper_percentile: float = 75.0,
-    figsize: tuple[float, float] = ARTICLE_PANEL_FIGSIZE,
+    figsize: tuple[float, float] = MANUSCRIPT_HALF_FIGSIZE,
+    ax: Axes | None = None,
 ) -> Figure:
     """Render article Figure 2(b) from saved PCS-QCNN training histories."""
 
@@ -510,7 +542,7 @@ def plot_article_figure_2b(
                 test_label="PCS-QCNN",
                 train_label="Train PCS-QCNN",
                 color="C0",
-                train_linestyle="-.",
+                train_linestyle="--",
                 limit_label_y_offset_points=DEFAULT_QUANTUM_LIMIT_LABEL_Y_OFFSET_POINTS,
             ),
             _Figure2SeriesConfig(
@@ -532,7 +564,16 @@ def plot_article_figure_2b(
         upper_percentile=upper_percentile,
         figsize=figsize,
         legend_location=DEFAULT_QUANTUM_LEGEND_LOCATION,
+        ax=ax,
     )
+
+
+def resolve_full_mnist_classical_artifacts_root(args: argparse.Namespace) -> Path:
+    """Return the full-MNIST classical root, inside ``--artifacts-root`` unless given explicitly."""
+
+    if args.full_mnist_classical_artifacts_root is not None:
+        return args.full_mnist_classical_artifacts_root.expanduser().resolve()
+    return args.artifacts_root.expanduser().resolve() / FULL_MNIST_CLASSICAL_DIRECTORY
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -553,10 +594,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--full-mnist-classical-artifacts-root",
         type=Path,
-        default=DEFAULT_FULL_MNIST_CLASSICAL_ARTIFACTS_ROOT,
+        default=None,
         help=(
-            "Directory containing the supplementary full-MNIST classical baselines, "
-            "for example artifacts/full_mnist_classical_baselines."
+            "Directory containing the supplementary full-MNIST classical baselines "
+            "(default: full_mnist_classical_baselines inside --artifacts-root)."
         ),
     )
     parser.add_argument(
@@ -650,9 +691,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     plt = _require_matplotlib()
 
     artifacts_root = args.artifacts_root.expanduser().resolve()
-    full_mnist_classical_artifacts_root = (
-        args.full_mnist_classical_artifacts_root.expanduser().resolve()
-    )
+    full_mnist_classical_artifacts_root = resolve_full_mnist_classical_artifacts_root(args)
     output_dir = args.output_dir.expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 

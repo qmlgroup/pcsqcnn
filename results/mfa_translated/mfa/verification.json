@@ -1,0 +1,50 @@
+{
+  "verified_runs": 3,
+  "runs": [
+    {
+      "run_dir": "artifacts/mfa/full_translated_seed0",
+      "seed": 0,
+      "epochs": 2000,
+      "device": "cuda",
+      "training_device": "cuda",
+      "data_fingerprints": {
+        "train": "2dc81f91e5d32f0fc60bd3d8b569cb774acacb56b689e8ce2ae97e75b7bed778",
+        "test": "f0c2c3b42a21e2713451029e20c7c33c0b5092f5e8e64f97a60d9c7ea78e4d60"
+      },
+      "saved_test_loss": 2.3807886335358144,
+      "recomputed_test_loss": 2.3807886335358144,
+      "saved_test_accuracy": 0.16709999680519105,
+      "recomputed_test_accuracy": 0.16709999680519105
+    },
+    {
+      "run_dir": "artifacts/mfa/full_translated_seed1",
+      "seed": 1,
+      "epochs": 2000,
+      "device": "cuda",
+      "training_device": "cpu",
+      "data_fingerprints": {
+        "train": "4fcd6d9c37d05486d266a5e8cf3149562653bf5b106f7be75c7751c25eec0311",
+        "test": "1ee6f8ab7a1dc684d72140da6233627afbc6fdb52f1b1e7b04c5729ca79b155e"
+      },
+      "saved_test_loss": 2.3413254792770557,
+      "recomputed_test_loss": 2.341325479277057,
+      "saved_test_accuracy": 0.15160000085830688,
+      "recomputed_test_accuracy": 0.1515999984741211
+    },
+    {
+      "run_dir": "artifacts/mfa/full_translated_seed2",
+      "seed": 2,
+      "epochs": 2000,
+      "device": "cuda",
+      "training_device": "cpu",
+      "data_fingerprints": {
+        "train": "ceba0929286cd28e56de98de253d0903b9fd823071307f3000947229c15dc0d1",
+        "test": "b50a25a595c12be7f3433f0079a81ff612f4e58b9fecbe53771d340eeb39ad3a"
+      },
+      "saved_test_loss": 2.3333687962668956,
+      "recomputed_test_loss": 2.333368796266897,
+      "saved_test_accuracy": 0.1784999966621399,
+      "recomputed_test_accuracy": 0.1784999966621399
+    }
+  ]
+}

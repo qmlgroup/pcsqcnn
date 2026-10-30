@@ -8,15 +8,16 @@ from typing import TYPE_CHECKING, Sequence
 import warnings
 
 from qcnn import (
-    ARTICLE_PANEL_FIGSIZE,
     TemporalStatisticSummary,
-    configure_matplotlib_pdf_fonts,
     load_saved_training_histories,
     plot_temporal_summary,
     summarize_temporal_samples,
 )
 
+from qcnn.matplotlib_config import MANUSCRIPT_HALF_FIGSIZE, configure_manuscript_plot_fonts
+
 if TYPE_CHECKING:
+    from matplotlib.axes import Axes
     from matplotlib.figure import Figure
     from qcnn import TrainingHistory
 
@@ -29,7 +30,7 @@ DEFAULT_SWEEP_DIRECTORY_NAME = "pcsqcnn_architecture_sweep_full_readout"
 DEFAULT_OUTPUT_FILENAME = "pcsqcnn_architecture_sweep_full_readout.pdf"
 DEFAULT_EPOCH_GROUP_SIZE = 50
 LAYER_LEGEND_LOCATION = "lower right"
-FEATURE_LEGEND_LOCATION = "lower center"
+FEATURE_LEGEND_LOCATION = "lower left"
 LAYER_COLOR_CYCLE: tuple[str, ...] = ("C0", "C1", "C2", "C3", "C4", "C5")
 FEATURE_LINESTYLE_CYCLE: tuple[LineStyle, ...] = (
     "-",
@@ -79,7 +80,7 @@ def _require_matplotlib():
     try:
         import matplotlib
 
-        configure_matplotlib_pdf_fonts(matplotlib)
+        configure_manuscript_plot_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(
@@ -267,7 +268,8 @@ def plot_article_figure_5a(
     epoch_group_size: int = DEFAULT_EPOCH_GROUP_SIZE,
     lower_percentile: float = 25.0,
     upper_percentile: float = 75.0,
-    figsize: tuple[float, float] = ARTICLE_PANEL_FIGSIZE,
+    figsize: tuple[float, float] = MANUSCRIPT_HALF_FIGSIZE,
+    ax: Axes | None = None,
 ) -> Figure:
     plt = _require_matplotlib()
     from matplotlib.lines import Line2D
@@ -283,7 +285,11 @@ def plot_article_figure_5a(
     observed_layers = detect_observed_layers(series_by_architecture)
     observed_feature_qubits = detect_observed_feature_qubits(series_by_architecture)
 
-    figure, ax = plt.subplots(figsize=figsize)
+    standalone = ax is None
+    if standalone:
+        figure, ax = plt.subplots(figsize=figsize)
+    else:
+        figure = ax.figure
     figure.patch.set_facecolor("white")
     ax.set_facecolor("white")
 
@@ -294,7 +300,7 @@ def plot_article_figure_5a(
             ax,
             summary=series.summary,
             color=style.color,
-            linewidth=1.5,
+            linewidth=0.9,
             linestyle=style.linestyle,
             band_alpha=0.20,
             label="_nolegend_",
@@ -307,7 +313,7 @@ def plot_article_figure_5a(
 
     layer_legend = ax.legend(
         handles=[
-            Line2D([0], [0], color=entry.color, linewidth=1.5, linestyle=entry.linestyle, label=entry.label)
+            Line2D([0], [0], color=entry.color, linewidth=0.9, linestyle=entry.linestyle, label=entry.label)
             for entry in build_layer_legend_entries(observed_layers)
         ],
         loc=LAYER_LEGEND_LOCATION,
@@ -316,14 +322,16 @@ def plot_article_figure_5a(
     ax.add_artist(layer_legend)
     ax.legend(
         handles=[
-            Line2D([0], [0], color=entry.color, linewidth=1.5, linestyle=entry.linestyle, label=entry.label)
+            Line2D([0], [0], color=entry.color, linewidth=0.9, linestyle=entry.linestyle, label=entry.label)
             for entry in build_feature_legend_entries(observed_feature_qubits)
         ],
         loc=FEATURE_LEGEND_LOCATION,
+        bbox_to_anchor=(0.18, 0.0),
         framealpha=0.8,
     )
 
-    figure.tight_layout()
+    if standalone:
+        figure.tight_layout(pad=0.35)
     return figure
 
 

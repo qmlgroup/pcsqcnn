@@ -1,0 +1,155 @@
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{graphicx}
+\usepackage[scaled=0.94]{helvet}
+\usepackage{sansmath}
+\renewcommand{\familydefault}{\sfdefault}
+\usetikzlibrary{arrows.meta,backgrounds,calc,fit,positioning}
+
+\graphicspath{{figsrc/assets/}{../assets/}}
+
+\definecolor{ink}{RGB}{34,38,42}
+\definecolor{canvas}{RGB}{248,245,239}
+\definecolor{line}{RGB}{92,98,104}
+\definecolor{quantfill}{RGB}{222,233,228}
+\definecolor{quantline}{RGB}{96,123,113}
+\definecolor{classfill}{RGB}{239,229,214}
+\definecolor{lossfill}{RGB}{241,223,219}
+\definecolor{supportfill}{RGB}{238,239,241}
+\definecolor{optfill}{RGB}{226,232,236}
+
+\begin{document}
+\sansmath
+\begin{tikzpicture}[
+    node distance=0.62cm and 0.70cm,
+    block/.style={
+        draw=line,
+        line width=0.95pt,
+        rounded corners=12pt,
+        minimum height=1.08cm,
+        inner xsep=9pt,
+        inner ysep=7pt,
+        align=center,
+        font=\sffamily\footnotesize,
+        text=ink,
+        fill=white,
+    },
+    quantum block/.style={
+        block,
+        fill=quantfill,
+        draw=quantline,
+    },
+    classical block/.style={
+        block,
+        fill=classfill,
+    },
+    loss block/.style={
+        block,
+        fill=lossfill,
+    },
+    support block/.style={
+        block,
+        fill=supportfill,
+        draw=line!70,
+    },
+    optimization block/.style={
+        block,
+        fill=optfill,
+        minimum width=2.45cm,
+    },
+    quantum frame/.style={
+        draw=quantline,
+        line width=1.0pt,
+        rounded corners=15pt,
+        fill=quantfill!55!canvas,
+        inner xsep=8pt,
+        inner ysep=13pt,
+    },
+    quantum label/.style={
+        font=\sffamily\footnotesize,
+        text=quantline!80!ink,
+        inner sep=0pt,
+    },
+    flow/.style={
+        draw=ink!82,
+        line width=0.95pt,
+        -{Latex[length=2.8mm,width=1.8mm]},
+    },
+    labelbox/.style={
+        fill=canvas,
+        draw=line!16,
+        rounded corners=4pt,
+        inner xsep=2.5pt,
+        inner ysep=1.4pt,
+        font=\sffamily\footnotesize,
+        text=ink,
+    }
+]
+
+\node[quantum block, minimum width=2.00cm] (frqi) {FRQI\\encoding};
+\node[quantum block, minimum width=2.10cm, right=0.55cm of frqi] (pcs) {PCS-QCNN};
+\node[classical block, minimum width=1.90cm, right=0.75cm of pcs] (head) {Classical\\head};
+\node[loss block, minimum width=1.45cm, right=0.65cm of head] (loss) {Loss};
+
+\node[
+    support block,
+    minimum width=1.95cm,
+    minimum height=1.95cm,
+    below=0.70cm of frqi
+] (input) {%
+    \begin{tabular}{@{}c@{}}
+    Input\\[3pt]
+    \begingroup
+    \setlength{\fboxsep}{2pt}
+    \fcolorbox{line!70}{white}{\includegraphics[width=1.05cm]{mnist_raw_5.png}}
+    \endgroup
+    \end{tabular}
+};
+
+\coordinate (optleft) at (pcs.west |- input.center);
+\coordinate (optright) at (head.center |- input.center);
+
+\node[
+    optimization block,
+    fit=(optleft) (optright),
+    inner xsep=0pt,
+    inner ysep=7pt,
+    minimum height=1.05cm,
+    text height=1.6ex,
+    text depth=0.25ex
+] (opt) {Optimization};
+
+\coordinate (optparamleft) at ($(opt.north west)!0.25!(opt.north east)$);
+\coordinate (optparamright) at ($(opt.north west)!0.75!(opt.north east)$);
+
+\node[
+    support block,
+    minimum width=1.85cm
+] (truth) at (loss.center |- input.center) {True label: $5$};
+
+\begin{scope}[on background layer]
+    \node[
+        quantum frame,
+        fit=(frqi) (pcs)
+    ] (qframe) {};
+\end{scope}
+
+\node[
+    quantum label,
+    anchor=north
+] at ([yshift=-4pt]qframe.north) {Quantum part};
+
+\draw[flow] (input.north) -- (frqi.south);
+\draw[flow] (frqi) -- (pcs);
+\draw[flow] (pcs) -- (head);
+\draw[flow] (head) -- (loss);
+\draw[flow] (truth.north) -- (loss.south);
+\draw[flow] (loss.south west) to[out=-115,in=15] (opt.north east);
+\draw[flow] (optparamleft) to[out=100,in=-90]
+    node[pos=0.56, anchor=east, align=right, xshift=-4pt, yshift=-6pt, labelbox] {\begingroup\unsansmath$\Theta$\endgroup}
+    (pcs.south);
+\draw[flow] (optparamright) to[out=80,in=-95]
+    node[pos=0.54, anchor=east, align=right, xshift=-14pt, yshift=-6pt, labelbox] {$W,b$}
+    (head.south);
+
+\end{tikzpicture}
+\end{document}

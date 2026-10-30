@@ -1,0 +1,10 @@
+\documentclass[border=2pt]{standalone}
+\input{crosses_style.tex}
+\begin{document}
+\begin{quantikz}[thin lines,row sep={.75cm,between origins},column sep=.9cm]
+\lstick{$\mathrm{Reg}\,x$}&\gate{T_x}\gategroup[wires=4,steps=3,style={rounded corners,dashed,inner sep=3pt},label style={label position=above,yshift=.15cm}]{$G_x=W_x^\dagger(I\otimes C_x)W_x$}&\qw&\gate{T_x^\dagger}&\qw\gategroup[wires=4,steps=3,style={rounded corners,dashed,inner sep=3pt},label style={label position=above,yshift=.15cm}]{$G_y=W_y^\dagger(I\otimes C_y)W_y$}&\qw&\qw&\qw\\
+\lstick{$\mathrm{Reg}\,y$}&\qw&\qw&\qw&\gate{T_y}&\qw&\gate{T_y^\dagger}&\qw\\
+\lstick{$\mathrm{Reg}\,f$}&\ctrl{-2}&\gate[2]{C_x}&\ctrl{-2}&\qw&\gate[2]{C_y}&\qw&\qw\\
+\lstick{$\mathrm{Reg}\,c$}&\qw&\qw&\qw&\ctrl{-2}&\qw&\ctrl{-2}&\qw
+\end{quantikz}
+\end{document}

@@ -43,11 +43,16 @@ from qcnn.layout import (
 from qcnn.matplotlib_config import configure_matplotlib_pdf_fonts
 from qcnn.model import EvaluationSummary, ImageClassifierRunner, TrainingHistory, accuracy_from_logits
 from qcnn.model_spec import ModelSpec
+from qcnn.qcs import QCSIndexLayer2D, QCSQCNN
+from qcnn.henderson import HendersonBlockLayer2D, HendersonQCNN, use_compiled_block_transfer
+from qcnn.hur import HurConvolutionLayer, HurPoolingLayer, HurQCNN
 from qcnn.quantum import (
+    AmplitudeEncoder2D,
     FiniteShotHistogram2D,
     FrqiEncoder2D,
     MarginalMeasurement2D,
     ModeMultiplexer2D,
+    LocalModeMultiplexer2D,
     pauli_coefficients_to_unitary,
 )
 from qcnn.serialization import (
@@ -122,12 +127,18 @@ __all__ = [
     "ENCODER_NORMALIZATION_MISMATCH",
     "ErrorAnalysisPayload",
     "EvaluationSummary",
+    "AmplitudeEncoder2D",
     "FiniteShotHistogram2D",
     "MetricHistorySummary",
     "TemporalStatisticSummary",
     "focus_metric_history",
     "format_nested_mapping_markdown",
     "FrqiEncoder2D",
+    "HendersonBlockLayer2D",
+    "HendersonQCNN",
+    "HurConvolutionLayer",
+    "HurPoolingLayer",
+    "HurQCNN",
     "ImageClassifierRunner",
     "LoadedAutoTrainingRun",
     "LoadedAutoTrainingRunEvaluationContext",
@@ -138,12 +149,15 @@ __all__ = [
     "ModelSpec",
     "MnistDatasetConfig",
     "ModeMultiplexer2D",
+    "LocalModeMultiplexer2D",
     "MisclassifiedExample",
     "OptimizerConfig",
     "OutputConfig",
     "PCSQCNN",
     "PCSQCNNNoQFT",
     "PreparedMnistSplits",
+    "QCSIndexLayer2D",
+    "QCSQCNN",
     "RegisterLayout2D",
     "SeedConfig",
     "SeedTrainingArtifacts",
@@ -182,5 +196,6 @@ __all__ = [
     "save_model_checkpoint",
     "summarize_accuracy_histories",
     "summarize_temporal_samples",
+    "use_compiled_block_transfer",
     "warn_for_article_alignment",
 ]

@@ -1,0 +1,93 @@
+{
+  "regimes": {
+    "translated": {
+      "runs": [
+        {
+          "data_fingerprints": {
+            "test": "f0c2c3b42a21e2713451029e20c7c33c0b5092f5e8e64f97a60d9c7ea78e4d60",
+            "train": "2dc81f91e5d32f0fc60bd3d8b569cb774acacb56b689e8ce2ae97e75b7bed778"
+          },
+          "epoch_wall_seconds": null,
+          "parameter_stats": "q105 Q105 C0",
+          "result_path": "artifacts/mfa/full_translated_seed0/result_seed0.pt",
+          "run_wall_seconds": 21990.14944911003,
+          "run_wall_seconds_current_segment": 21390.14944911003,
+          "run_wall_seconds_estimated": true,
+          "run_wall_seconds_original_orchestrator": null,
+          "run_wall_seconds_pause_adjusted": false,
+          "run_wall_seconds_prior_estimate": 600.0,
+          "seed": 0,
+          "test_accuracy": 0.16709999680519105,
+          "test_loss": 2.3807886335358144,
+          "train_accuracy": 0.1692,
+          "train_loss": 2.3773883897161308,
+          "training_device": "cuda"
+        },
+        {
+          "data_fingerprints": {
+            "test": "1ee6f8ab7a1dc684d72140da6233627afbc6fdb52f1b1e7b04c5729ca79b155e",
+            "train": "4fcd6d9c37d05486d266a5e8cf3149562653bf5b106f7be75c7751c25eec0311"
+          },
+          "epoch_wall_seconds": 16964.54533773358,
+          "parameter_stats": "q105 Q105 C0",
+          "result_path": "artifacts/mfa/full_translated_seed1/result_seed1.pt",
+          "run_wall_seconds": 16966.347011327744,
+          "run_wall_seconds_current_segment": 16966.347011327744,
+          "run_wall_seconds_estimated": false,
+          "run_wall_seconds_original_orchestrator": null,
+          "run_wall_seconds_pause_adjusted": false,
+          "run_wall_seconds_prior_estimate": null,
+          "seed": 1,
+          "test_accuracy": 0.15160000085830688,
+          "test_loss": 2.3413254792770557,
+          "train_accuracy": 0.1706,
+          "train_loss": 2.3327618861813675,
+          "training_device": "cpu"
+        },
+        {
+          "data_fingerprints": {
+            "test": "b50a25a595c12be7f3433f0079a81ff612f4e58b9fecbe53771d340eeb39ad3a",
+            "train": "ceba0929286cd28e56de98de253d0903b9fd823071307f3000947229c15dc0d1"
+          },
+          "epoch_wall_seconds": 15878.992499156273,
+          "parameter_stats": "q105 Q105 C0",
+          "result_path": "artifacts/mfa/full_translated_seed2/result_seed2.pt",
+          "run_wall_seconds": 15880.789486408234,
+          "run_wall_seconds_current_segment": 15880.789486408234,
+          "run_wall_seconds_estimated": false,
+          "run_wall_seconds_original_orchestrator": null,
+          "run_wall_seconds_pause_adjusted": false,
+          "run_wall_seconds_prior_estimate": null,
+          "seed": 2,
+          "test_accuracy": 0.1784999966621399,
+          "test_loss": 2.3333687962668956,
+          "train_accuracy": 0.1834,
+          "train_loss": 2.337361735017144,
+          "training_device": "cpu"
+        }
+      ],
+      "test_accuracy": {
+        "count": 3,
+        "maximum": 0.1784999966621399,
+        "mean": 0.16573333144187927,
+        "minimum": 0.15160000085830688,
+        "standard_deviation": 0.01350197297519942
+      },
+      "test_loss": {
+        "count": 3,
+        "maximum": 2.3807886335358144,
+        "mean": 2.3518276363599218,
+        "minimum": 2.3333687962668956,
+        "standard_deviation": 0.025394521440609615
+      },
+      "train_accuracy": {
+        "count": 3,
+        "maximum": 0.1834,
+        "mean": 0.1744,
+        "minimum": 0.1692,
+        "standard_deviation": 0.007825599018605548
+      }
+    }
+  },
+  "source": "MFA independently implemented ten-class baseline"
+}

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import hashlib
 import json
 import math
 import random
@@ -22,7 +23,7 @@ from qcnn.data import PreparedMnistSplits, prepare_mnist_splits
 from qcnn.model import EvaluationSummary, ImageClassifierRunner, ProgressFactory, TrainingHistory
 from qcnn.model_stats import format_trainable_parameter_stats_line
 from qcnn.model_spec import ModelSpec, instantiate_model
-from qcnn.serialization import save_model_checkpoint
+from qcnn.serialization import load_model_checkpoint, save_model_checkpoint
 from qcnn.script_tasks import ManifestTaskContext, ManifestTaskSpec, run_manifest_tasks
 from qcnn.statistics import StatisticCollector
 
@@ -42,6 +43,8 @@ class MnistDatasetConfig:
         max_offset: Maximum integer translation magnitude applied
             independently along both axes after centering the resized image on
             the final canvas.
+        test_max_offset: Optional translation magnitude of the test split
+            only; ``None`` reuses ``max_offset``.
         train_batch_size: Batch size used by the training loader.
         test_batch_size: Batch size used by the evaluation loader.
         num_workers: Worker count passed into both loaders.
@@ -54,6 +57,7 @@ class MnistDatasetConfig:
     image_size: int = 16
     scaled_image_size: int | None = None
     max_offset: int = 0
+    test_max_offset: int | None = None
     train_batch_size: int = 64
     test_batch_size: int = 16000
     num_workers: int = 0
@@ -110,6 +114,11 @@ class TrainingConfig:
             the autograd graph for gradient-based collectors.
         test_evaluation_interval_epochs: Frequency of epoch-end test
             evaluation. The final epoch is always evaluated.
+        init_checkpoint: Optional model checkpoint whose weights initialize
+            every seed; ``{seed}`` in the path is replaced by the seed. Its
+            model specification must equal the configured one. Only the
+            weights are loaded: the optimizer starts fresh (warm restart),
+            and epochs are counted from one again.
     """
 
     num_epochs: int = 100
@@ -119,6 +128,7 @@ class TrainingConfig:
     torch_matmul_precision: str | None = "high"
     test_requires_grad: bool = False
     test_evaluation_interval_epochs: int = 10
+    init_checkpoint: str | None = None
 
 
 @dataclass(frozen=True)
@@ -378,6 +388,9 @@ def run_auto_training_manifest_tasks(
 def run_mnist_auto_training(
     config: AutoTrainingConfig,
     *,
+    resume: bool = False,
+    save_training_state: bool = False,
+    implementation: Mapping[str, Any] | None = None,
     collectors: tuple[StatisticCollector, ...] | list[StatisticCollector] = (),
     progress_factory: ProgressFactory | None = None,
     seed_start_callback: SeedLifecycleCallback | None = None,
@@ -388,6 +401,14 @@ def run_mnist_auto_training(
 
     Args:
         config: High-level dataset/model/training/output configuration.
+        resume: Restore each seed from its final checkpoint or latest snapshot
+            in an existing explicit output directory. Unstarted seeds train
+            normally; completed seeds do not repeat any epochs.
+        save_training_state: Include optimizer, RNG, data fingerprints and
+            history in checkpoints. Required for ``resume``; MFA enables it.
+        implementation: Optional JSON-compatible source/version record. Saved
+            before training, checked on resume, and bound to checkpoints by
+            its SHA-256 digest. Pass the current record on every invocation.
         collectors: Optional additional metric collectors saved alongside the
             default loss and accuracy collectors.
         progress_factory: Optional epoch-iterator wrapper, for example a
@@ -414,8 +435,15 @@ def run_mnist_auto_training(
     """
 
     snapshot_epochs = _validate_config(config)
+    if resume and not save_training_state:
+        raise ValueError("Resume requires save_training_state=True.")
+    if resume and collectors:
+        raise ValueError("Resume currently supports the built-in loss and accuracy collectors only.")
     resolved_device = _resolve_execution_device(config.training.device)
-    output_directory = _prepare_output_directory(config.output)
+    output_directory = _prepare_output_directory(config.output, resume=resume)
+    implementation_sha256 = _prepare_implementation_record(
+        output_directory, implementation=implementation, resume=resume,
+    )
 
     if config.training.torch_matmul_precision is not None:
         torch.set_float32_matmul_precision(config.training.torch_matmul_precision)
@@ -433,6 +461,9 @@ def run_mnist_auto_training(
             snapshot_epochs=snapshot_epochs,
             device=resolved_device,
             output_directory=output_directory,
+            resume=resume,
+            save_training_state=save_training_state,
+            implementation_sha256=implementation_sha256,
             progress_factory=progress_factory,
             seed_epoch_end_callback=seed_epoch_end_callback,
         )
@@ -447,6 +478,8 @@ def run_mnist_auto_training(
         "seeds": seeds,
         "runs": [_seed_manifest_entry(run, output_directory=output_directory) for run in runs],
     }
+    if implementation_sha256 is not None:
+        manifest["implementation_sha256"] = implementation_sha256
     manifest_path = output_directory / "manifest.json"
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True),
@@ -471,10 +504,17 @@ def _run_single_seed_training(
     snapshot_epochs: tuple[int, ...],
     device: torch.device,
     output_directory: Path,
+    resume: bool,
+    save_training_state: bool,
+    implementation_sha256: str | None,
     progress_factory: ProgressFactory | None,
     seed_epoch_end_callback: SeedEpochEndCallback | None,
 ) -> SeedTrainingRun:
     _set_global_seeds(seed)
+    # A separate test translation is forwarded only when configured.
+    test_split_kwargs = (
+        {} if config.dataset.test_max_offset is None else {"test_max_offset": config.dataset.test_max_offset}
+    )
     splits = prepare_mnist_splits(
         root=config.dataset.root,
         samples_per_class=config.dataset.samples_per_class,
@@ -483,6 +523,15 @@ def _run_single_seed_training(
         max_offset=config.dataset.max_offset,
         seed=seed,
         download=config.dataset.download,
+        **test_split_kwargs,
+    )
+    data_fingerprints = (
+        {
+            "train": _fingerprint_image_dataset(splits.train),
+            "test": _fingerprint_image_dataset(splits.test),
+        }
+        if save_training_state
+        else {}
     )
     if device.type == "cuda":
         splits = splits.to(device)
@@ -500,7 +549,46 @@ def _run_single_seed_training(
         seed=seed,
     )
 
-    model = instantiate_model(config.model)
+    resume_state: dict[str, Any] | None = None
+    resume_path: Path | None = None
+    if resume:
+        candidates = sorted(
+            output_directory.glob(f"checkpoint_epoch*_seed{seed}.pt"),
+            key=lambda path: int(path.name.split("_seed")[0].split("epoch")[1]),
+            reverse=True,
+        )
+        final_path = output_directory / f"checkpoint_final_seed{seed}.pt"
+        if final_path.is_file():
+            candidates.insert(0, final_path)
+        if candidates:
+            resume_path = candidates[0]
+            loaded = load_model_checkpoint(resume_path, map_location="cpu")
+            if loaded.model_spec != config.model:
+                raise ValueError("The saved model specification differs from the requested run.")
+            resume_state = loaded.training_state
+            if resume_state is None:
+                raise ValueError(f"Checkpoint has no resumable training state: {resume_path}")
+            if not _resume_configs_match(
+                resume_state.get("resolved_config"), _resolved_seed_config(config, seed=seed),
+            ):
+                raise ValueError("The saved training configuration differs from the requested run.")
+            if resume_state.get("implementation_sha256") != implementation_sha256:
+                raise ValueError("Checkpoint implementation hash differs from the current implementation record.")
+            if resume_state.get("data_fingerprints") != data_fingerprints:
+                raise ValueError("Prepared MNIST data differ from the saved checkpoint data.")
+            model = loaded.model
+    if resume_state is None:
+        model = instantiate_model(config.model)
+        fit_preprocessing = getattr(model, "fit_preprocessing", None)
+        if callable(fit_preprocessing):
+            fit_preprocessing(splits.train.images, seed=seed)
+        # A warm start loads the weights of an earlier run after any preprocessing fit, so they win.
+        if config.training.init_checkpoint is not None:
+            init_path = Path(config.training.init_checkpoint.format(seed=seed))
+            initial = load_model_checkpoint(init_path, map_location="cpu")
+            if initial.model_spec != config.model:
+                raise ValueError(f"The model specification of {init_path} differs from the requested run.")
+            model.load_state_dict(initial.model.state_dict())
     parameter_stats_line = format_trainable_parameter_stats_line(model)
     optimizer = _build_optimizer(config.optimizer, model.parameters())
     runner = ImageClassifierRunner(
@@ -510,9 +598,34 @@ def _run_single_seed_training(
         metric_collectors=collectors,
     )
 
-    snapshot_paths: dict[int, Path] = {}
-    last_train_summary: EvaluationSummary | None = None
-    last_test_summary: EvaluationSummary | None = None
+    initial_history: TrainingHistory | None = None
+    start_epoch = 1
+    if resume_state is not None:
+        optimizer.load_state_dict(resume_state["optimizer_state"])
+        initial_history = TrainingHistory(**resume_state["training_history"])
+        start_epoch = int(resume_state["epoch"]) + 1
+        _restore_training_rng(resume_state["rng_state"], train_loader=train_loader)
+
+    snapshot_paths: dict[int, Path] = (
+        {
+            int(path.name.split("_seed")[0].split("epoch")[1]): path
+            for path in output_directory.glob(f"checkpoint_epoch*_seed{seed}.pt")
+            if resume_path is not None
+            and int(path.name.split("_seed")[0].split("epoch")[1]) < start_epoch
+        }
+        if resume_state is not None
+        else {}
+    )
+    last_train_summary: EvaluationSummary | None = (
+        _summary_from_plain(resume_state.get("last_train_summary"))
+        if resume_state is not None
+        else None
+    )
+    last_test_summary: EvaluationSummary | None = (
+        _summary_from_plain(resume_state.get("last_test_summary"))
+        if resume_state is not None
+        else None
+    )
 
     def save_epoch_outputs(
         epoch: int,
@@ -526,7 +639,27 @@ def _run_single_seed_training(
             last_test_summary = test_summary
         if epoch in snapshot_epochs:
             checkpoint_path = output_directory / f"checkpoint_epoch{epoch}_seed{seed}.pt"
-            save_model_checkpoint(runner.model, config.model, checkpoint_path)
+            save_model_checkpoint(
+                runner.model,
+                config.model,
+                checkpoint_path,
+                training_state=(
+                    _capture_training_state(
+                        epoch=epoch,
+                        config=config,
+                        seed=seed,
+                        data_fingerprints=data_fingerprints,
+                        implementation_sha256=implementation_sha256,
+                        optimizer=optimizer,
+                        train_loader=train_loader,
+                        history=history,
+                        last_train_summary=last_train_summary,
+                        last_test_summary=last_test_summary,
+                    )
+                    if save_training_state
+                    else None
+                ),
+            )
             snapshot_paths[epoch] = checkpoint_path
         if seed_epoch_end_callback is not None:
             seed_epoch_end_callback(seed, epoch, train_summary, test_summary, history)
@@ -540,12 +673,41 @@ def _run_single_seed_training(
         test_evaluation_interval_epochs=config.training.test_evaluation_interval_epochs,
         progress_factory=progress_factory,
         epoch_end_callback=save_epoch_outputs,
+        start_epoch=start_epoch,
+        initial_history=initial_history,
     )
     if last_train_summary is None or last_test_summary is None:
         raise RuntimeError("Automated training finished without recording final epoch summaries.")
 
     final_checkpoint_path = output_directory / f"checkpoint_final_seed{seed}.pt"
-    save_model_checkpoint(runner.model, config.model, final_checkpoint_path)
+    result_path = output_directory / f"result_seed{seed}.pt"
+    completed_artifacts = (
+        resume_path == final_checkpoint_path
+        and start_epoch == config.training.num_epochs + 1
+        and result_path.is_file()
+    )
+    if not completed_artifacts:
+        save_model_checkpoint(
+            runner.model,
+            config.model,
+            final_checkpoint_path,
+            training_state=(
+                _capture_training_state(
+                    epoch=config.training.num_epochs,
+                    config=config,
+                    seed=seed,
+                    data_fingerprints=data_fingerprints,
+                    implementation_sha256=implementation_sha256,
+                    optimizer=optimizer,
+                    train_loader=train_loader,
+                    history=history,
+                    last_train_summary=last_train_summary,
+                    last_test_summary=last_test_summary,
+                )
+                if save_training_state
+                else None
+            ),
+        )
 
     collector_states = runner.export_collector_states()
     for collector_name, collector_state in collector_states.items():
@@ -573,8 +735,12 @@ def _run_single_seed_training(
             },
         },
     }
-    result_path = output_directory / f"result_seed{seed}.pt"
-    torch.save(result_payload, result_path)
+    if save_training_state:
+        result_payload["data_fingerprints"] = data_fingerprints
+    if implementation_sha256 is not None:
+        result_payload["implementation_sha256"] = implementation_sha256
+    if not completed_artifacts:
+        torch.save(result_payload, result_path)
 
     artifacts = SeedTrainingArtifacts(
         result_path=result_path,
@@ -593,6 +759,119 @@ def _run_single_seed_training(
         artifacts=artifacts,
         resolved_config=resolved_config,
     )
+
+
+def _prepare_implementation_record(
+    output_directory: Path, *, implementation: Mapping[str, Any] | None, resume: bool,
+) -> str | None:
+    """Persist provenance before any training, without replacing its origin."""
+    path = output_directory / "implementation.json"
+    if implementation is None:
+        if path.exists():
+            raise ValueError("Resuming this run requires the current implementation record.")
+        return None
+    serialized = json.dumps(dict(implementation), indent=2, sort_keys=True, allow_nan=False) + "\n"
+    if resume:
+        if not path.is_file():
+            raise ValueError(f"Missing implementation record for resume: {path}")
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        if saved != json.loads(serialized):
+            raise ValueError("The saved implementation differs from the current source code or software versions.")
+    else:
+        with path.open("x", encoding="utf-8") as stream:
+            stream.write(serialized)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _resume_configs_match(saved: Any, requested: Mapping[str, Any]) -> bool:
+    """Output naming does not change the experiment, including auto names."""
+    if not isinstance(saved, Mapping):
+        return False
+    return {key: value for key, value in saved.items() if key != "output"} == {
+        key: value for key, value in requested.items() if key != "output"
+    }
+
+
+def _fingerprint_image_dataset(dataset) -> str:
+    """Hash prepared images and labels so resumed runs use identical examples."""
+
+    digest = hashlib.sha256()
+    for name, values in (("images", dataset.images), ("labels", dataset.labels)):
+        host_values = values.detach().cpu().contiguous().numpy()
+        digest.update(name.encode("ascii"))
+        digest.update(str(host_values.shape).encode("ascii"))
+        digest.update(str(host_values.dtype).encode("ascii"))
+        digest.update(host_values.tobytes())
+    return digest.hexdigest()
+
+
+def _summary_from_plain(raw: Any) -> EvaluationSummary | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping):
+        raise ValueError("Saved epoch summary must be a mapping.")
+    return EvaluationSummary(loss=float(raw["loss"]), metrics=dict(raw["metrics"]))
+
+
+def _capture_training_state(
+    *,
+    epoch: int,
+    config: AutoTrainingConfig,
+    seed: int,
+    data_fingerprints: dict[str, str],
+    implementation_sha256: str | None,
+    optimizer: Optimizer,
+    train_loader: DataLoader,
+    history: TrainingHistory,
+    last_train_summary: EvaluationSummary,
+    last_test_summary: EvaluationSummary | None,
+) -> dict[str, Any]:
+    numpy_state = np.random.get_state()
+    loader_generator = train_loader.generator
+    return {
+        "epoch": epoch,
+        "resolved_config": _resolved_seed_config(config, seed=seed),
+        "data_fingerprints": dict(data_fingerprints),
+        "implementation_sha256": implementation_sha256,
+        "optimizer_state": optimizer.state_dict(),
+        "training_history": asdict(history),
+        "last_train_summary": _summary_to_plain(last_train_summary),
+        "last_test_summary": (
+            None if last_test_summary is None else _summary_to_plain(last_test_summary)
+        ),
+        "rng_state": {
+            "python": random.getstate(),
+            "numpy": (
+                numpy_state[0],
+                torch.from_numpy(numpy_state[1].copy()),
+                numpy_state[2],
+                numpy_state[3],
+                numpy_state[4],
+            ),
+            "torch_cpu": torch.get_rng_state(),
+            "torch_cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
+            "train_loader": None if loader_generator is None else loader_generator.get_state(),
+        },
+    }
+
+
+def _restore_training_rng(state: Mapping[str, Any], *, train_loader: DataLoader) -> None:
+    random.setstate(state["python"])
+    numpy_state = state["numpy"]
+    np.random.set_state(
+        (
+            numpy_state[0],
+            numpy_state[1].detach().cpu().numpy(),
+            numpy_state[2],
+            numpy_state[3],
+            numpy_state[4],
+        )
+    )
+    torch.set_rng_state(state["torch_cpu"].cpu())
+    if torch.cuda.is_available() and state["torch_cuda"]:
+        torch.cuda.set_rng_state_all([value.cpu() for value in state["torch_cuda"]])
+    if train_loader.generator is not None and state["train_loader"] is not None:
+        train_loader.generator.set_state(state["train_loader"].cpu())
 
 
 def _validate_config(config: AutoTrainingConfig) -> tuple[int, ...]:
@@ -625,9 +904,9 @@ def _validate_config(config: AutoTrainingConfig) -> tuple[int, ...]:
             f"got {out_of_range_epochs}."
         )
 
-    if config.optimizer.kind not in {"adam", "sgd"}:
+    if config.optimizer.kind not in {"adam", "sgd", "mfa_adam"}:
         raise ValueError(
-            "optimizer.kind must be one of 'adam' or 'sgd', "
+            "optimizer.kind must be one of 'adam', 'sgd', or 'mfa_adam', "
             f"got {config.optimizer.kind!r}."
         )
 
@@ -645,7 +924,7 @@ def _resolve_execution_device(requested_device: str | torch.device | None) -> to
     return torch.device("cpu")
 
 
-def _prepare_output_directory(config: OutputConfig) -> Path:
+def _prepare_output_directory(config: OutputConfig, *, resume: bool = False) -> Path:
     root = Path(config.root).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
 
@@ -654,10 +933,17 @@ def _prepare_output_directory(config: OutputConfig) -> Path:
             raise ValueError("output.directory_name must be a non-empty string when provided.")
         output_directory = root / config.directory_name
         if output_directory.exists():
+            if resume and output_directory.is_dir():
+                return output_directory
             raise FileExistsError(f"Output directory already exists: {output_directory}")
+        if resume:
+            raise FileNotFoundError(f"No output directory to resume: {output_directory}")
         output_directory.parent.mkdir(parents=True, exist_ok=True)
         output_directory.mkdir(parents=False, exist_ok=False)
         return output_directory
+
+    if resume:
+        raise ValueError("Resuming requires an explicit output directory name.")
 
     if config.use_timestamp_dir:
         base_name = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -715,6 +1001,12 @@ def _loader_settings_for_device(
 
 
 def _build_optimizer(config: OptimizerConfig, parameters) -> Optimizer:
+    if config.kind == "mfa_adam":
+        from qcnn.baselines.mfa_optimizer import MFAAdam
+
+        if config.weight_decay != 0:
+            raise ValueError("The published MFA Adam optimizer has no weight decay.")
+        return MFAAdam(parameters, lr=config.learning_rate)
     if config.kind == "adam":
         return torch.optim.Adam(
             parameters,
@@ -769,6 +1061,9 @@ def _seed_manifest_entry(run: SeedTrainingRun, *, output_directory: Path) -> dic
 def _resolved_global_config(config: AutoTrainingConfig) -> dict[str, Any]:
     plain_config = _to_plain_data(asdict(config))
     plain_config["dataset"] = _resolved_dataset_config(config.dataset)
+    # Only warm-started runs record the initial checkpoint, so older manifests keep their form.
+    if config.training.init_checkpoint is None:
+        del plain_config["training"]["init_checkpoint"]
     plain_config["output"]["directory_name"] = (
         config.output.directory_name
         if config.output.directory_name is not None
@@ -787,7 +1082,7 @@ def _resolved_dataset_config(config: MnistDatasetConfig) -> dict[str, Any]:
     resolved_scaled_image_size = (
         config.image_size if config.scaled_image_size is None else int(config.scaled_image_size)
     )
-    return {
+    resolved = {
         "root": str(config.root),
         "samples_per_class": config.samples_per_class,
         "image_size": config.image_size,
@@ -799,6 +1094,10 @@ def _resolved_dataset_config(config: MnistDatasetConfig) -> dict[str, Any]:
         "pin_memory": config.pin_memory,
         "download": config.download,
     }
+    # Only runs with a separate test translation record it, so older manifests keep their form.
+    if config.test_max_offset is not None:
+        resolved["test_max_offset"] = config.test_max_offset
+    return resolved
 
 
 def _format_epoch_metric(value: float | None, *, percent: bool = False) -> str:

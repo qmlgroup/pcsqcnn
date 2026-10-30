@@ -623,3 +623,31 @@ def test_pcsqcnn_runs_forward_and_backward_on_cuda() -> None:
     assert model.classifier.weight.grad.is_cuda
     assert multiplexer_grad is not None
     assert multiplexer_grad.is_cuda
+
+
+def test_pcsqcnn_amplitude_encoding_keeps_the_stack_and_a_normalized_readout() -> None:
+    torch.manual_seed(5)
+    model = PCSQCNN(image_size=8, num_classes=4, feature_qubits=2, quantum_layers=2, encoding="amplitude")
+    images = torch.rand(3, 8, 8)
+
+    readout = model.exact_quantum_readout_probabilities(images)
+    loss = nn.functional.cross_entropy(model(images), torch.tensor([0, 1, 2]))
+    loss.backward()
+
+    assert model.encoding == "amplitude" and model.brightness_range is None
+    assert readout.shape == (3, 4, 4, 4)
+    assert torch.allclose(readout.sum(dim=(1, 2, 3)), torch.ones(3), atol=1e-5)
+    for name, parameter in model.named_parameters():
+        assert parameter.grad is not None and parameter.grad.abs().sum() > 0, name
+
+
+def test_pcsqcnn_amplitude_encoding_matches_frqi_parameter_count() -> None:
+    frqi = PCSQCNN(image_size=8, num_classes=4, feature_qubits=2, quantum_layers=2)
+    amplitude = PCSQCNN(image_size=8, num_classes=4, feature_qubits=2, quantum_layers=2, encoding="amplitude")
+
+    assert [p.shape for p in amplitude.parameters()] == [p.shape for p in frqi.parameters()]
+
+
+def test_pcsqcnn_rejects_unknown_encoding() -> None:
+    with pytest.raises(ValueError, match="encoding must be"):
+        PCSQCNN(image_size=8, num_classes=4, encoding="basis")

@@ -1,0 +1,45 @@
+{
+  "config": {
+    "kind": "pcs",
+    "seed": 2,
+    "epochs": 2000,
+    "batch_size": 4864,
+    "learning_rate": 0.01,
+    "qcs_depth": 2,
+    "dataset_sha256": "fe3c346c60616605c71a1cd17802f399c5eae0425c81a8c4eea56667fc546de6",
+    "source_sha256": {
+      "figure1_crosses.py": "2ab7eff6bcd267a66d012c7836b3b2eb3880d98f0f42e48d15a3a83cc42ce7b9",
+      "quantum.py": "da45438108c65950a23db8dadf3da972e91dac3273a0955d451db689871f7283",
+      "layout.py": "a4d16e5c3fb1072a25cf3106f9b566c7f889c31240b4412d2a7a12e3af338d58",
+      "baselines/sp_qcnn.py": "324e4636f9d3820d676cbe64c9869a3d1a6ecaa8ca73302c09161aac23543429"
+    },
+    "runner_sha256": "14d1a8e466222b642c24d8a43fce646a303f3a4a6c3b016f86c90374bda48fd9",
+    "dtype": "float32",
+    "initialization_std": 0.3,
+    "head_initialization_std": 0.1,
+    "optimizer": "Adam",
+    "head": "256 times blank-centered summed probabilities; affine 4 to 1"
+  },
+  "parameters": {
+    "quantum": 32,
+    "head": 5,
+    "total": 37
+  },
+  "final": {
+    "epoch": 2000,
+    "loss": 0.057000987231731415,
+    "accuracy": 1.0,
+    "strata": {
+      "5_pixels_label0": 1.0,
+      "5_pixels_label1": 1.0,
+      "10_pixels_label0": 1.0,
+      "10_pixels_label1": 1.0
+    },
+    "logit_min": -3.1093149185180664,
+    "logit_max": 7.9039998054504395
+  },
+  "elapsed_seconds": 24.045514411991462,
+  "checkpoint_sha256": "db214b04a52574c682832656ceeece46df95de42ebfb99c0a30ea3b9dd8d164d",
+  "torch_version": "2.10.0+cu128",
+  "device": "NVIDIA GeForce RTX 5060 Ti"
+}

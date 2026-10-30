@@ -18,6 +18,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from qcnn.data import PreparedMnistSplits, prepare_mnist_splits
+from qcnn.json_artifacts import load_payload, resolve_payload_path
 from qcnn.model import EvaluationSummary, ImageClassifierRunner, TrainingHistory
 from qcnn.model_spec import ModelSpec, instantiate_model, model_spec_from_mapping, model_spec_to_dict
 
@@ -38,6 +39,7 @@ class LoadedModelCheckpoint:
     model: nn.Module
     model_spec: ModelSpec
     checkpoint_path: Path
+    training_state: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -48,7 +50,7 @@ class LoadedAutoTrainingRun:
         model: Reconstructed ``nn.Module`` with the saved final weights loaded.
         model_spec: Saved model specification from the checkpoint bundle.
         checkpoint_path: Path to the loaded final checkpoint bundle.
-        result_path: Path to the loaded ``result_seed*.pt`` payload.
+        result_path: Path to the loaded ``result_seed*.pt`` or ``result_seed*.json`` payload.
         seed: Seed associated with the loaded run.
         device: Saved device string from the run result payload.
         loss_name: Saved loss-function name from the run result payload.
@@ -113,9 +115,16 @@ class LoadedAutoTrainingRun:
         metric_names = list(self.training_history.test_metrics)
         custom_metrics = [metric_name for metric_name in metric_names if metric_name != "accuracy"]
 
-        if self.loss_name != "CrossEntropyLoss":
+        model_loss_factory = getattr(self.model, "build_loss_collector", None)
+        reconstructed_loss_name = (
+            model_loss_factory().loss_fn.__class__.__name__
+            if callable(model_loss_factory)
+            else "CrossEntropyLoss"
+        )
+        if self.loss_name != reconstructed_loss_name:
             notes.append(
-                f"Saved loss is {self.loss_name!r}; reconstructed evaluation uses CrossEntropyLoss."
+                f"Saved loss is {self.loss_name!r}; reconstructed evaluation uses "
+                f"{reconstructed_loss_name}."
             )
         if custom_metrics:
             notes.append(
@@ -161,7 +170,11 @@ class LoadedAutoTrainingRun:
                 + "."
             )
 
+        test_max_offset = dataset_config.get("test_max_offset")
+        # Runs with a separate test translation add ``test_max_offset``.
+        test_split_fields = {} if test_max_offset is None else {"test_max_offset": int(test_max_offset)}
         return {
+            **test_split_fields,
             "dataset_name": "MNIST",
             "image_size": int(image_size),
             "scaled_image_size": int(scaled_image_size),
@@ -487,6 +500,8 @@ def save_model_checkpoint(
     model: nn.Module,
     model_spec: ModelSpec,
     path: str | Path,
+    *,
+    training_state: Mapping[str, Any] | None = None,
 ) -> None:
     """Save a reconstruction-ready model checkpoint bundle.
 
@@ -508,6 +523,8 @@ def save_model_checkpoint(
         "model_spec": model_spec_to_dict(model_spec),
         "model_state": _cpu_state_dict(model),
     }
+    if training_state is not None:
+        payload["training_state"] = dict(training_state)
     torch.save(payload, checkpoint_path)
 
 
@@ -559,10 +576,15 @@ def load_model_checkpoint(
         raise ValueError("Checkpoint is missing a valid model_state mapping.")
     model.load_state_dict(model_state)
 
+    training_state = payload.get("training_state")
+    if training_state is not None and not isinstance(training_state, Mapping):
+        raise ValueError("Checkpoint training_state must be a mapping when present.")
+
     return LoadedModelCheckpoint(
         model=model,
         model_spec=model_spec,
         checkpoint_path=checkpoint_path,
+        training_state=None if training_state is None else dict(training_state),
     )
 
 
@@ -577,7 +599,7 @@ def load_auto_training_run(
     Args:
         run_directory: Directory containing the saved run files.
         seed: Seed selecting the `checkpoint_final_seed*.pt` and
-            `result_seed*.pt` pair.
+            `result_seed*.pt` (or its JSON export) pair.
         map_location: Optional device mapping forwarded to checkpoint loading.
 
     Returns:
@@ -587,13 +609,13 @@ def load_auto_training_run(
 
     resolved_directory = Path(run_directory)
     checkpoint_path = resolved_directory / f"checkpoint_final_seed{seed}.pt"
-    result_path = resolved_directory / f"result_seed{seed}.pt"
+    result_path = resolve_payload_path(resolved_directory / f"result_seed{seed}.pt")
     loaded_checkpoint = load_model_checkpoint(
         checkpoint_path,
         map_location=map_location,
     )
 
-    payload = torch.load(result_path, map_location=map_location)
+    payload = load_payload(result_path)
     if not isinstance(payload, Mapping):
         raise ValueError("Run result must deserialize to a mapping.")
 
@@ -665,6 +687,7 @@ def reconstruct_saved_mnist_splits_from_run(
         max_offset=mnist_config["max_offset"],
         seed=mnist_config["seed"],
         download=download,
+        test_max_offset=mnist_config.get("test_max_offset"),
     )
 
 

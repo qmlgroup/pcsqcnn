@@ -19,6 +19,7 @@ from qcnn.article_training import (
     DEFAULT_S2_REFERENCE_EPOCHS,
     build_canonical_reference_run_directory_name,
 )
+from qcnn.json_artifacts import load_payload
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
@@ -54,7 +55,7 @@ def _require_matplotlib():
 
 
 def load_readout_entropy_payload(payload_path: str | Path) -> dict[str, Any]:
-    payload = torch.load(Path(payload_path), map_location="cpu", weights_only=False)
+    payload = load_payload(payload_path)
     if not isinstance(payload, Mapping):
         raise ValueError("readout-entropy payload must deserialize to a mapping.")
     return dict(payload)

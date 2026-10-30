@@ -1,0 +1,93 @@
+\documentclass[border=0pt]{standalone}
+\input{crosses_style.tex}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=-1mm]
+\path[use as bounding box] (0,0) rectangle (130.75,94);
+\begin{scope}[shift={(0,.5)}]
+% One connected diagram. Letters identify the two commuting squares and
+% the central noncommuting paths, rather than separate boxed panels.
+% Plain-language titles identify the transformations; the next line gives
+% the exact layer symmetries. Keep the central translation test distinct.
+\foreach \left/\right/\letter/\kind/\shiftop/\title in {10.5/49.5/a/QCS/S/{Qubit permutations},82.5/121.5/c/PCS/T/{Pixel translations}}{
+ \node[anchor=base west,font=\bfseries\fontsize{8}{9}\selectfont] at (\left,2.4) {(\letter)};
+ \node[anchor=base west,font=\bfseries\fontsize{8}{9.5}\selectfont] at (\left+5,2.4) {\title};
+ \node[state label] at ({(\left+\right)/2},5.8) {$[U_{\rm\kind},\shiftop_x]=0$};
+ \draw[group rule] (\left,11.3)--(\left,10.6)--(\right,10.6)--(\right,11.3);
+}
+\node[anchor=base west,font=\bfseries\fontsize{8}{9}\selectfont] at (53,2.4) {(b)};
+\node[anchor=base west,font=\bfseries\fontsize{8}{9.5}\selectfont] at (58,2.4) {Translation test};
+\node[state label] at (66,5.8) {$[U_{\rm QCS},T_x]\ne0$};
+\node[state label] at (30,9.2) {$S_x\ket{q_0q_1q_2q_3}=\ket{q_3q_0q_1q_2}$};
+\node[state label] at (102,9.2) {$T_x\ket x=\ket{x+1\bmod16}$};
+% Reuse the lower margin for the additional header line without rescaling.
+\begin{scope}[shift={(0,3.4)}]
+\foreach \xx/\yy/\name in {18/19/psi,42/19/qcs_base,66/19/qcs_Tx_transport,90/19/psi,114/19/pcs_base,18/41/Spsi,42/41/qcs_S,66/41/qcs_T,90/41/Tpsi,114/41/pcs_T}{
+ \node at (\xx,\yy) {\includegraphics[width=15mm]{build/crosses/\name.pdf}};
+ \draw[frame] (\xx-7.5,\yy-7.5) rectangle (\xx+7.5,\yy+7.5);
+}
+% Coordinates are anchored to actual pixel centers (15 mm / 16 pixels).
+% The unobtrusive axes occupy the empty first row/column of the input only.
+\coordinate (origin) at (10.96875,11.96875);
+\draw[coordinate guide] (origin)--(16.4,11.96875);
+\draw[coordinate guide] (origin)--(10.96875,17.5);
+\node[coordinate label,anchor=west] at (16.7,11.96875) {$x$};
+\node[coordinate label,anchor=north] at (10.96875,17.8) {$y$};
+\fill[black!70] (origin) circle[radius=.17mm];
+\node[coordinate label,anchor=base east] at (9.9,11.2) {$0$};
+% A generic address points to a background pixel (12,10), away from the crosses.
+\node[coordinate label,anchor=base west] at (26,28.6) {$\mathbf r=(x,y)$};
+\draw[draw=black!55,line width=.3pt] (39.8,29.25)--(26,29.25);
+\draw[coordinate guide] (26,29.25)--(22.21875,21.34375);
+\draw[draw=black!65,line width=.35pt] (21.75,20.875) rectangle (22.6875,21.8125);
+% Arrows and their labels use common baselines in each row.
+\draw[flow] (26,19)--(34,19);
+\draw[flow] (50,19)--(58,19);
+\draw[flow] (98,19)--(106,19);
+\draw[flow] (26,41)--(34,41);
+\draw[flow] (82,41)--(74,41);
+\draw[flow] (98,41)--(106,41);
+\foreach \xx/\yy/\op in {30/17.4/{U_{\rm QCS}},54/17.4/{T_x^8},102/17.4/{U_{\rm PCS}},30/39.4/{U_{\rm QCS}},78/39.4/{U_{\rm QCS}},102/39.4/{U_{\rm PCS}}}{
+ \node[operation label] at (\xx,\yy) {$\op$};
+}
+\foreach \xx/\op in {18/{S_x^3},42/{S_x^3},90/{T_x^8},114/{T_x^8}}{
+ \draw[flow] (\xx,27)--(\xx,33);
+ \ifnum\xx=42
+  \node[operation label,anchor=base west] at (\xx+1,30.8) {$\op$};
+ \else
+  \node[operation label,anchor=base east] at (\xx-1,30.8) {$\op$};
+ \fi
+}
+\node[anchor=base,font=\fontsize{10}{11}\selectfont] at (66,31.1) {$\ne$};
+\foreach \xx/\state in {18/{\ket\psi},42/{U_{\rm QCS}\ket\psi},66/{T_x^8U_{\rm QCS}\ket\psi},90/{\ket\psi},114/{U_{\rm PCS}\ket\psi}}{
+ \node[state label] at (\xx,10.5) {$\state$};
+}
+\foreach \xx/\state in {18/{S_x^3\ket\psi},42/{U_{\rm QCS}S_x^3\ket\psi},66/{U_{\rm QCS}T_x^8\ket\psi},90/{T_x^8\ket\psi},114/{U_{\rm PCS}T_x^8\ket\psi}}{
+ \node[state label] at (\xx,51.5) {$\state$};
+}
+% Cool input angles and warm output probabilities have distinct keys.
+\node at (1.7,30) {\includegraphics[width=1.4mm,height=22mm]{build/crosses/anglebar.pdf}};
+\node[anchor=base,font=\fontsize{8}{9.5}\selectfont] at (2.2,17) {$\vartheta_{\mathbf r}$};
+\foreach \yy/\val in {19/0,30/{\pi/4},41/{\pi/2}}{
+ \draw[line width=.3pt] (2.4,\yy)--(3,\yy);
+ \node[anchor=west,font=\fontsize{8}{9.5}\selectfont] at (3.5,\yy) {$\val$};
+}
+\node at (123.8,30) {\includegraphics[width=1.4mm,height=22mm]{build/crosses/colorbar.pdf}};
+\node[anchor=base,font=\fontsize{8}{9.5}\selectfont] at (123.8,17) {$p_0$};
+\foreach \yy/\val in {19/0,30/{0.5},41/1}{
+ \draw[line width=.3pt] (124.5,\yy)--(125.1,\yy);
+ \node[anchor=west,font=\fontsize{8}{9.5}\selectfont] at (125.5,\yy) {$\val$};
+}
+% Circuit titles, diagrams, and equations share the same alignment grid.
+% Use the middle gap for wider circuits; keep 8 pt labels inside 6 mm gates.
+\begin{scope}[shift={(0,-3.4)}]
+\node[anchor=base,font=\bfseries\fontsize{8}{9.5}\selectfont] at (30,58.7) {$U_{\rm QCS}$: shared qubit gates};
+\node[anchor=base,font=\bfseries\fontsize{8}{9.5}\selectfont] at (102,58.7) {$U_{\rm PCS}$: Fourier multiplexer};
+\node[anchor=north west] at (0,56.5) {\includegraphics[width=65mm]{build/crosses_qcs_circuit.pdf}};
+\node[anchor=north west] at (65.75,56.5) {\includegraphics[width=65mm]{build/crosses_pcs_circuit.pdf}};
+\node[anchor=base west,font=\fontsize{8}{9.5}\selectfont] at (11,91) {$\textstyle\ket\psi=\frac1{16}\sum_{\mathbf r}\ket{\mathbf r}\ket0_f[\sin \vartheta_{\mathbf r}\ket0_c+\cos \vartheta_{\mathbf r}\ket1_c]$};
+\node[anchor=base east,font=\fontsize{8}{9.5}\selectfont] at (121,91) {$p_0(\mathbf r)=\Pr(c=0\mid\mathbf r)$};
+\end{scope}
+\end{scope}
+\end{scope}
+\end{tikzpicture}
+\end{document}

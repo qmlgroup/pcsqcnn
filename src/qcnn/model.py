@@ -371,6 +371,8 @@ class ImageClassifierRunner:
         test_evaluation_interval_epochs: int = 10,
         progress_factory: ProgressFactory | None = None,
         epoch_end_callback: EpochEndCallback | None = None,
+        start_epoch: int = 1,
+        initial_history: TrainingHistory | None = None,
     ) -> TrainingHistory:
         """Train for multiple epochs and record epoch-level history.
 
@@ -406,21 +408,42 @@ class ImageClassifierRunner:
                 f"got {test_evaluation_interval_epochs}."
             )
 
+        if not 1 <= start_epoch <= num_epochs + 1:
+            raise ValueError("start_epoch must be between 1 and num_epochs + 1.")
         metric_names = tuple(self.metric_collectors)
-        history = TrainingHistory(
-            train_epoch=[],
-            test_epoch=[],
-            train_loss=[],
-            test_loss=[],
-            train_metrics={metric_name: [] for metric_name in metric_names},
-            test_metrics={metric_name: [] for metric_name in metric_names},
-        )
+        if initial_history is None:
+            if start_epoch != 1:
+                raise ValueError("initial_history is required when resuming training.")
+            history = TrainingHistory(
+                train_metrics={metric_name: [] for metric_name in metric_names},
+                test_metrics={metric_name: [] for metric_name in metric_names},
+            )
+        else:
+            if initial_history.train_epoch != list(range(1, start_epoch)):
+                raise ValueError("initial_history does not end immediately before start_epoch.")
+            if set(initial_history.train_metrics) != set(metric_names):
+                raise ValueError("initial_history metric names differ from the runner's metrics.")
+            history = TrainingHistory(
+                train_epoch=initial_history.train_epoch,
+                test_epoch=initial_history.test_epoch,
+                train_loss=initial_history.train_loss,
+                test_loss=initial_history.test_loss,
+                train_metrics=initial_history.train_metrics,
+                test_metrics=initial_history.test_metrics,
+            )
 
-        epoch_range = range(1, num_epochs + 1)
+        epoch_range = range(start_epoch, num_epochs + 1)
         epoch_iterator = progress_factory(epoch_range) if progress_factory is not None else epoch_range
         all_collectors = self._all_collectors()
         for collector in all_collectors:
             collector.on_run_start(num_epochs=num_epochs)
+        if initial_history is not None:
+            self.loss_collector.restore_history(train=history.train_loss, test=history.test_loss)
+            for metric_name, collector in self.metric_collectors.items():
+                collector.restore_history(
+                    train=history.train_metrics[metric_name],
+                    test=history.test_metrics[metric_name],
+                )
 
         try:
             for epoch in epoch_iterator:
@@ -565,6 +588,12 @@ class ImageClassifierRunner:
     ) -> LossCollector:
         if loss_collector is not None:
             return loss_collector
+        model_factory = getattr(self.model, "build_loss_collector", None)
+        if callable(model_factory):
+            built = model_factory()
+            if not isinstance(built, LossCollector):
+                raise TypeError("Model build_loss_collector must return a LossCollector.")
+            return built
         return CrossEntropyLossCollector()
 
     def _build_metric_collectors(

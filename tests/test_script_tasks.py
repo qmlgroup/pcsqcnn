@@ -127,7 +127,8 @@ def test_run_manifest_tasks_rebuilds_completed_outputs_with_rebuild(tmp_path: Pa
     assert stale_seen_during_run == [False]
 
 
-def test_run_manifest_tasks_removes_incomplete_nested_outputs_before_rerun(tmp_path: Path) -> None:
+@pytest.mark.parametrize("rebuild", [False, True])
+def test_run_manifest_tasks_preserves_incomplete_outputs_unless_rebuild(tmp_path: Path, rebuild: bool) -> None:
     output_directory = tmp_path / "nested" / "epoch010_shots128"
     output_directory.mkdir(parents=True, exist_ok=True)
     (output_directory / "stale.txt").write_text("incomplete", encoding="utf-8")
@@ -140,7 +141,15 @@ def test_run_manifest_tasks_removes_incomplete_nested_outputs_before_rerun(tmp_p
         output_directory.mkdir(parents=True, exist_ok=True)
         (output_directory / "manifest.json").write_text("{}", encoding="utf-8")
 
-    run_manifest_tasks((ManifestTaskSpec(name="nested", output_directory=output_directory, run=run),))
+    tasks = (ManifestTaskSpec(name="nested", output_directory=output_directory, run=run),)
+    if not rebuild:
+        with pytest.raises(FileExistsError, match="Files were preserved.*--rebuild"):
+            run_manifest_tasks(tasks)
+        assert (output_directory / "stale.txt").read_text() == "incomplete"
+        assert stale_seen_during_run == []
+        return
+
+    run_manifest_tasks(tasks, rebuild=True)
 
     assert stale_seen_during_run == [False]
     assert (output_directory / "manifest.json").is_file()
@@ -280,3 +289,15 @@ def test_run_manifest_tasks_leaves_stdout_ready_for_followup_print(
 
     captured = capsys.readouterr()
     assert "FOLLOWUP /tmp/result.pt" in captured.out.splitlines()
+
+
+def test_run_manifest_tasks_accepts_an_empty_output_directory(tmp_path: Path) -> None:
+    output = tmp_path / "empty"
+    output.mkdir()
+
+    def run(context):
+        output.mkdir()
+        (output / "manifest.json").write_text("{}")
+
+    run_manifest_tasks((ManifestTaskSpec(name="empty", output_directory=output, run=run),))
+    assert (output / "manifest.json").is_file()

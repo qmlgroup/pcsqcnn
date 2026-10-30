@@ -31,6 +31,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_ROOT = PROJECT_ROOT / "data"
 DEFAULT_ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
 DEFAULT_IMAGE_SIZE_SWEEP_ROOT_DIRECTORY = "pcsqcnn_image_size_sweep"
+DEFAULT_HENDERSON_QCNN_TRANSLATED_ROOT_DIRECTORY = "henderson_qcnn_translated_mnist"
+DEFAULT_QCSQCNN_TRANSLATED_ROOT_DIRECTORY = "qcsqcnn_translated_mnist"
+DEFAULT_HUR_QCNN_TRANSLATED_ROOT_DIRECTORY = "hur_qcnn_translated_mnist"
 DEFAULT_CANONICAL_REFERENCE_SCALED_IMAGE_SIZE = 16
 DEFAULT_CANONICAL_REFERENCE_IMAGE_SIZE = 16
 DEFAULT_CANONICAL_REFERENCE_SNAPSHOT_EPOCHS: tuple[int, ...] = (10,) + tuple(
@@ -166,22 +169,27 @@ def build_pcsqcnn_model_spec(
     quantum_layers: int,
     brightness_range: tuple[float, float],
     reduce_readout_to_feature_distribution: bool,
+    encoding: str = "frqi",
+    multiplexer_kind: str = "general",
 ) -> ModelSpec:
-    return ModelSpec(
-        module="qcnn.hybrid",
-        class_name="PCSQCNN",
-        constructor_kwargs={
-            "image_size": image_size,
-            "num_classes": defaults.num_classes,
-            "feature_qubits": feature_qubits,
-            "quantum_layers": quantum_layers,
-            "brightness_range": brightness_range,
-            "shot_budget": None,
-            "reduce_readout_to_feature_distribution": reduce_readout_to_feature_distribution,
-            "use_reduced_fourier_junction": True,
-            "multiplexer_init_scale": defaults.multiplexer_init_scale,
-        },
-    )
+    # ``encoding`` and ``multiplexer_kind`` enter the spec only when they differ from FRQI and the
+    # general multiplexer, so earlier specs keep their form.
+    constructor_kwargs: dict[str, object] = {
+        "image_size": image_size,
+        "num_classes": defaults.num_classes,
+        "feature_qubits": feature_qubits,
+        "quantum_layers": quantum_layers,
+        "brightness_range": brightness_range,
+        "shot_budget": None,
+        "reduce_readout_to_feature_distribution": reduce_readout_to_feature_distribution,
+        "use_reduced_fourier_junction": True,
+        "multiplexer_init_scale": defaults.multiplexer_init_scale,
+    }
+    if encoding != "frqi":
+        constructor_kwargs["encoding"] = encoding
+    if multiplexer_kind != "general":
+        constructor_kwargs["multiplexer_kind"] = multiplexer_kind
+    return ModelSpec(module="qcnn.hybrid", class_name="PCSQCNN", constructor_kwargs=constructor_kwargs)
 
 
 def build_fixed_pcsqcnn_model_spec(defaults: _FixedFigure2Defaults) -> ModelSpec:
@@ -256,6 +264,87 @@ def build_figure_2_model_spec(
     )
 
 
+def build_henderson_qcnn_model_spec(
+    defaults: _CommonTrainingDefaults,
+    *,
+    image_size: int,
+    channels: int,
+    quantum_layers: int,
+    brightness_range: tuple[float, float],
+) -> ModelSpec:
+    """Build the Henderson-QCNN baseline spec with the shared article initialization scale."""
+
+    return ModelSpec(
+        module="qcnn.henderson",
+        class_name="HendersonQCNN",
+        constructor_kwargs={
+            "image_size": image_size,
+            "num_classes": defaults.num_classes,
+            "channels": channels,
+            "quantum_layers": quantum_layers,
+            "brightness_range": brightness_range,
+            "block_init_scale": defaults.multiplexer_init_scale,
+        },
+    )
+
+
+def build_qcsqcnn_model_spec(
+    defaults: _CommonTrainingDefaults,
+    *,
+    image_size: int,
+    feature_qubits: int,
+    quantum_layers: int,
+    sublayers: int,
+    brightness_range: tuple[float, float],
+) -> ModelSpec:
+    """Build the FRQI QCS-QCNN control spec with the shared article initialization scale."""
+
+    return ModelSpec(
+        module="qcnn.qcs",
+        class_name="QCSQCNN",
+        constructor_kwargs={
+            "image_size": image_size,
+            "num_classes": defaults.num_classes,
+            "feature_qubits": feature_qubits,
+            "quantum_layers": quantum_layers,
+            "sublayers": sublayers,
+            "brightness_range": brightness_range,
+            "shot_budget": None,
+            "generator_init_scale": defaults.multiplexer_init_scale,
+        },
+    )
+
+
+def build_hur_qcnn_model_spec(
+    defaults: _CommonTrainingDefaults,
+    *,
+    image_size: int,
+    filters: int,
+    channels: int = 1,
+    encoding: str = "amplitude",
+    brightness_range: tuple[float, float] = (0.0, math.pi),
+) -> ModelSpec:
+    """Build the Hur-QCNN baseline spec with the shared article initialization scale.
+
+    ``channels`` enters the spec only when it differs from the single-channel
+    circuit of the paper, so single-channel specs keep their original form;
+    ``encoding`` and ``brightness_range`` enter it only for the FRQI encoding.
+    """
+
+    constructor_kwargs: dict[str, object] = {
+        "image_size": image_size,
+        "num_classes": defaults.num_classes,
+        "filters": filters,
+        "angle_init_scale": defaults.multiplexer_init_scale,
+    }
+    if channels != 1:
+        constructor_kwargs["channels"] = channels
+    if encoding != "amplitude":
+        constructor_kwargs["encoding"] = encoding
+        constructor_kwargs["brightness_range"] = brightness_range
+    return ModelSpec(module="qcnn.hur", class_name="HurQCNN", constructor_kwargs=constructor_kwargs)
+
+
 def build_brightness_sweep_model_spec(
     defaults: _BrightnessSweepDefaults,
     *,
@@ -314,6 +403,10 @@ def _is_article_hybrid_model_spec(model_spec: ModelSpec) -> bool:
     return (model_spec.module, model_spec.class_name) in {
         ("qcnn.hybrid", "PCSQCNN"),
         ("qcnn.hybrid", "PCSQCNNNoQFT"),
+        ("qcnn.henderson", "HendersonQCNN"),
+        ("qcnn.qcs", "QCSQCNN"),
+        ("qcnn.hur", "HurQCNN"),
+        ("qcnn.baselines.sp_qcnn", "SpQCNN"),
     }
 
 
@@ -348,6 +441,7 @@ def build_article_auto_training_config(
             image_size=resolved_image_size,
             scaled_image_size=defaults.scaled_image_size,
             max_offset=defaults.max_offset,
+            test_max_offset=getattr(defaults, "test_max_offset", None),
             train_batch_size=defaults.train_batch_size,
             test_batch_size=defaults.test_batch_size,
             num_workers=defaults.num_workers,
@@ -444,6 +538,51 @@ def build_architecture_sweep_directory_name(
     return str(Path(root_directory) / run_subdirectory)
 
 
+def build_henderson_qcnn_run_subdirectory_name(
+    *,
+    channels: int,
+    quantum_layers: int,
+) -> str:
+    return f"ch{channels}_ql{quantum_layers}"
+
+
+def build_henderson_qcnn_directory_name(
+    *,
+    channels: int,
+    quantum_layers: int,
+    root_directory: str = DEFAULT_HENDERSON_QCNN_TRANSLATED_ROOT_DIRECTORY,
+) -> str:
+    run_subdirectory = build_henderson_qcnn_run_subdirectory_name(
+        channels=channels,
+        quantum_layers=quantum_layers,
+    )
+    return str(Path(root_directory) / run_subdirectory)
+
+
+def build_qcsqcnn_run_subdirectory_name(
+    *,
+    feature_qubits: int,
+    quantum_layers: int,
+    sublayers: int,
+) -> str:
+    return f"fq{feature_qubits}_ql{quantum_layers}_sl{sublayers}"
+
+
+def build_qcsqcnn_directory_name(
+    *,
+    feature_qubits: int,
+    quantum_layers: int,
+    sublayers: int,
+    root_directory: str = DEFAULT_QCSQCNN_TRANSLATED_ROOT_DIRECTORY,
+) -> str:
+    run_subdirectory = build_qcsqcnn_run_subdirectory_name(
+        feature_qubits=feature_qubits,
+        quantum_layers=quantum_layers,
+        sublayers=sublayers,
+    )
+    return str(Path(root_directory) / run_subdirectory)
+
+
 def build_image_size_sweep_run_subdirectory_name(
     *,
     scaled_image_size: int,
@@ -497,3 +636,17 @@ def resolve_canonical_reference_run_directory(
     return Path(artifacts_root) / build_canonical_reference_run_directory_name(
         sweep_root_directory=sweep_root_directory,
     )
+
+
+def build_hur_qcnn_run_subdirectory_name(*, filters: int, channels: int = 1) -> str:
+    name = f"su4_l{filters}"
+    return name if channels == 1 else f"ch{channels}_{name}"
+
+
+def build_hur_qcnn_directory_name(
+    *,
+    filters: int,
+    channels: int = 1,
+    root_directory: str = DEFAULT_HUR_QCNN_TRANSLATED_ROOT_DIRECTORY,
+) -> str:
+    return str(Path(root_directory) / build_hur_qcnn_run_subdirectory_name(filters=filters, channels=channels))

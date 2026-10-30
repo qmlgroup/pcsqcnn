@@ -1,0 +1,212 @@
+\documentclass[tikz,border=3pt]{standalone}
+\usepackage{quantikz}
+\usepackage{physics}
+
+\begin{document}
+\tikzset{
+operator/.append style={fill=teal!8},
+meter/.append style={fill=orange!18},
+}
+\begin{quantikz}[thin lines,row sep=0.01cm, column sep=0.13cm, wire types={q,q,q,q,q,q,q,q,q,q,q}]
+\lstick{$\ket{x_{Q-1\ldots}}$}
+    & \gate[5]{\raisebox{1.1em}[0pt][0pt]{$\mathcal{F}^{(1)}$}} \gategroup[wires=11,steps=4,style={rounded corners,dashed,inner xsep=2pt},label style={label position=above,yshift=0.25cm}]{Layer 1}
+    & \gate[11]{\mathcal{B}^{(1)}}
+    & \gate[5]{\raisebox{1.1em}[0pt][0pt]{$\mathcal{F}^{(1)\dagger}$}}
+    &
+    &
+    &
+    & \gate[4]{\mathcal{F}^{(2)}} \gategroup[wires=11,steps=4,style={rounded corners,dashed,inner xsep=2pt},label style={label position=above,yshift=0.25cm}]{Layer 2}
+    & \gate[11]{\mathcal{B}^{(2)}_{m_1}}
+    & \gate[4]{\mathcal{F}^{(2)\dagger}}
+    &
+    &
+    & \ \ldots\ 
+    & \gate{\mathcal{F}^{(Q)}} \gategroup[wires=11,steps=4,style={rounded corners,dashed,inner xsep=2pt},label style={label position=above,yshift=0.25cm}]{Layer Q}
+    & \gate[11]{\mathcal{B}^{(Q)}_{m_{Q-1}}}
+    & \gate{\mathcal{F}^{(Q)\dagger}}
+    & \meter{}
+    & \setwiretype{c} \\
+\lstick{$\ket{x_{Q-2}}$}
+    & \ghost{\mathcal{F}^{(1)}}
+    & \ghost{\mathcal{B}^{(1)}}
+    & \ghost{\mathcal{F}^{(1)\dagger}}
+    &
+    &
+    &
+    & \ghost{\mathcal{F}^{(2)}}
+    & \ghost{\mathcal{B}^{(2)}_{m_1}}
+    & \ghost{\mathcal{F}^{(2)\dagger}}
+    &
+    &
+    & \ \ldots\ 
+    & \setwiretype{c}
+    & \ghost{\mathcal{B}^{(Q)}_{m_{Q-1}}}
+    & \setwiretype{n}
+    &
+    & \\
+    & \wave
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    & \\
+\lstick{$\ket{x_1}$}
+    & \ghost{\mathcal{F}^{(1)}}
+    & \ghost{\mathcal{B}^{(1)}}
+    & \ghost{\mathcal{F}^{(1)\dagger}}
+    &
+    &
+    &
+    & \ghost{\mathcal{F}^{(2)}}
+    & \ghost{\mathcal{B}^{(2)}_{m_1}}
+    & \ghost{\mathcal{F}^{(2)\dagger}}
+    & \meter{}
+    & \setwiretype{c}
+    & \ \ldots\ 
+    & \setwiretype{n}
+    & \ghost{\mathcal{B}^{(Q)}_{m_{Q-1}}}
+    &
+    &
+    & \\
+\lstick{$\ket{x_0}$}
+    & \ghost{\mathcal{F}^{(1)}}
+    & \ghost{\mathcal{B}^{(1)}}
+    & \ghost{\mathcal{F}^{(1)\dagger}}
+    & \meter{}
+    & \setwiretype{c}
+    &
+    &
+    & \ghost{\mathcal{B}^{(2)}_{m_1}}
+    & \setwiretype{n}
+    &
+    &
+    &
+    &
+    & \ghost{\mathcal{B}^{(Q)}_{m_{Q-1}}}
+    &
+    &
+    & \\
+\lstick{$\ket{y_{Q-1\ldots}}$}
+    & \gate[5]{\raisebox{1.1em}[0pt][0pt]{$\mathcal{F}^{(1)}$}}
+    & \ghost{\mathcal{B}^{(1)}}
+    & \gate[5]{\raisebox{1.1em}[0pt][0pt]{$\mathcal{F}^{(1)\dagger}$}}
+    &
+    &
+    &
+    & \gate[4]{\mathcal{F}^{(2)}}
+    & \ghost{\mathcal{B}^{(2)}_{m_1}}
+    & \gate[4]{\mathcal{F}^{(2)\dagger}}
+    &
+    &
+    & \ \ldots\ 
+    & \gate{\mathcal{F}^{(Q)}}
+    & \ghost{\mathcal{B}^{(Q)}_{m_{Q-1}}}
+    & \gate{\mathcal{F}^{(Q)\dagger}}
+    & \meter{}
+    & \setwiretype{c} \\
+\lstick{$\ket{y_{Q-2}}$}
+    & \ghost{\mathcal{F}^{(1)}}
+    & \ghost{\mathcal{B}^{(1)}}
+    & \ghost{\mathcal{F}^{(1)\dagger}}
+    &
+    &
+    &
+    & \ghost{\mathcal{F}^{(2)}}
+    & \ghost{\mathcal{B}^{(2)}_{m_1}}
+    & \ghost{\mathcal{F}^{(2)\dagger}}
+    &
+    &
+    & \ \ldots\ 
+    & \setwiretype{c}
+    & \ghost{\mathcal{B}^{(Q)}_{m_{Q-1}}}
+    & \setwiretype{n}
+    &
+    & \\
+    & \wave
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    &
+    & \\
+\lstick{$\ket{y_1}$}
+    & \ghost{\mathcal{F}^{(1)}}
+    & \ghost{\mathcal{B}^{(1)}}
+    & \ghost{\mathcal{F}^{(1)\dagger}}
+    &
+    &
+    &
+    & \ghost{\mathcal{F}^{(2)}}
+    & \ghost{\mathcal{B}^{(2)}_{m_1}}
+    & \ghost{\mathcal{F}^{(2)\dagger}}
+    & \meter{}
+    & \setwiretype{c}
+    & \ \ldots\ 
+    & \setwiretype{n}
+    & \ghost{\mathcal{B}^{(Q)}_{m_{Q-1}}}
+    &
+    &
+    & \\
+\lstick{$\ket{y_0}$}
+    & \ghost{\mathcal{F}^{(1)}}
+    & \ghost{\mathcal{B}^{(1)}}
+    & \ghost{\mathcal{F}^{(1)\dagger}}
+    & \meter{}
+    & \setwiretype{c}
+    &
+    &
+    & \ghost{\mathcal{B}^{(2)}_{m_1}}
+    & \setwiretype{n}
+    &
+    &
+    &
+    &
+    & \ghost{\mathcal{B}^{(Q)}_{m_{Q-1}}}
+    &
+    &
+    & \\
+\lstick{$\ket{f}$}
+    &
+    & \ghost{\mathcal{B}^{(1)}}
+    &
+    &
+    &
+    &
+    &
+    & \ghost{\mathcal{B}^{(2)}_{m_1}}
+    &
+    &
+    &
+    & \ \ldots\ 
+    &
+    & \ghost{\mathcal{B}^{(Q)}_{m_{Q-1}}}
+    &
+    & \meter{}
+    & \setwiretype{c}
+\end{quantikz}
+\end{document}

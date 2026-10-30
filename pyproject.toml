@@ -7,6 +7,7 @@ name = "qcnn"
 version = "0.1.0"
 description = "Torch-first PCS-QCNN utilities and encoder"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "rich>=14.1.0",
@@ -26,6 +27,10 @@ notebook = [
 pennylane = [
     "pennylane>=0.43.0",
 ]
+mfa = [
+    "pennylane>=0.43.0",
+    "scikit-learn>=1.4,<2",
+]
 test = [
     "matplotlib>=3.9.0",
     "marimo>=0.20.4",
@@ -38,6 +43,20 @@ packages = ["src/qcnn"]
 
 [tool.hatch.build.targets.sdist]
 include = [
+    "/LICENSE",
+    "/.gitattributes",
+    "/.editorconfig",
+    "/.gitignore",
+    "/ARTIFACTS.md",
+    "/BUILD.md",
+    "/INFO.md",
+    "/MFA_BENCHMARK.md",
+    "/REPRODUCING.md",
+    "/build_all_figures.sh",
+    "/docs",
+    "/figsrc",
+    "/results",
+    "/uv.lock",
     "/notebooks",
     "/README.md",
     "/pennylane",

@@ -32,6 +32,11 @@ behavior, not as planned work.
 
 - Fixed translated-MNIST training for `ClassicalCNN`, `ClassicalMLP`, `PCSQCNN`, and `PCSQCNNNoQFT`.
 - A no-QFT PCS-QCNN ablation implemented by `qcnn.hybrid.PCSQCNNNoQFT`, where each quantum layer uses a fixed random unitary `R` and its conjugate transpose `R*` instead of `QFT` and `IQFT`.
+- An address-encoding QCS-QCNN control implemented by `qcnn.qcs.QCSQCNN`: the PCS-QCNN pipeline with the Fourier multiplexer replaced by qubit-cyclic-shift-equivariant layers on the FRQI index registers (article Fig. 1(a,c)), in a head-matched and a fully parameter-matched variant.
+- A Henderson-like baseline implemented by `qcnn.henderson.HendersonQCNN`: a trainable multilayer quanvolution network with pixel-to-qubit encoding, weight-shared `2x2` block unitaries, and measurement-conditioned pooling.
+- A Hur-QCNN baseline implemented by `qcnn.hur.HurQCNN`: the amplitude-encoded QCNN of Hur, Kim, and Park (arXiv:2108.00661) with a shared SU(4) ring convolution and two-parameter pooling, adapted to 10 qubits and ten classes.
+- A validation-split successive-halving search over learning rate and initialization scale (`qcnn.tuning`), used for the QCS-QCNN and Hur-QCNN baselines.
+- A translation-generalization experiment: PCS-QCNN (full and position-summed readout) and the eight-channel Hur-QCNN trained on offsets `[-2, 2]` and tested on the benchmark offsets `[-8, 8]`, with accuracy resolved per offset.
 - A translated-MNIST PCS-QCNN architecture sweep over feature-qubit count and quantum-layer count.
 - A full-MNIST PCS-QCNN image-size sweep over synchronized `(scaled_image_size, image_size)` pairs, including one canonical reference subrun with dense snapshots.
 - A translated-digit brightness-range sweep over encoder upper-bound values `b` in `brightness_range=(0, b*pi)`.
@@ -50,6 +55,10 @@ behavior, not as planned work.
 - `src/qcnn/model.py`: DataLoader-first training/evaluation runner for grayscale image classifiers
 - `src/qcnn/quantum.py`: FRQI-like encoder, Fourier helpers, reduced Fourier junctions, multiplexer blocks, and measurement readout
 - `src/qcnn/hybrid.py`: hybrid PCS-QCNN model scaffolds built from the quantum blocks, including the Figure 2 no-QFT ablation
+- `src/qcnn/qcs.py`: address-encoding QCS-QCNN control with translation-invariant local generators on the FRQI index registers, simulated blockwise in the eigenbasis of the qubit cyclic shift
+- `src/qcnn/henderson.py`: Henderson-QCNN baseline (multilayer quanvolution with pixel-to-qubit encoding) and its exact Pauli-transfer simulator
+- `src/qcnn/hur.py`: Hur-QCNN baseline (amplitude encoding, SU(4) ring convolution, parameterized pooling) and its state-vector simulator
+- `src/qcnn/tuning.py`: resumable validation-split successive-halving search shared by the baseline tuning scripts
 - `src/qcnn/data.py`: deterministic MNIST preparation and tensor-dataset wrappers
 - `src/qcnn/article.py`: article-alignment defaults and warning helpers
 - `src/qcnn/serialization.py`: library-level PCS-QCNN artifact save/load helpers
@@ -225,6 +234,154 @@ Each quantum layer uses a fixed random unitary `R` and its conjugate transpose
 `R*` instead of `QFT` and `IQFT`. It is not a learned QFT replacement: the
 sampled spatial unitary is stored as a buffer and remains non-trainable.
 
+### `QCSQCNN`
+
+`QCSQCNN` is the address-encoding QCS-QCNN of the article's Fig. 1(a,c), used
+as a matched control for the PCS-versus-QCS comparison. It keeps the PCS-QCNN
+FRQI encoder, deferred-measurement pooling of the least-significant active
+index qubit per axis, conditioning of later layers on the most recently pooled
+bit pair, marginal full readout, and linear head. Only the convolution changes:
+each layer applies `K` sublayers, and each sublayer evolves the active x
+register together with the feature register and then the active y register
+together with the feature register under
+
+```text
+U = exp(i * sum_{j=0}^{n-1} tau_j(h)),   h = sum_alpha theta_alpha P_alpha
+```
+
+where `tau_j` places the shared local term `h` on the neighbouring index qubits
+`(j, j + 1 mod n)` (periodic wrap, as in Fig. 1(a)) and the feature register,
+and `P_alpha` runs over the full Pauli basis of those `2 + n_f` qubits. Each
+branch, sublayer, and axis has its own local term.
+
+Because the generator is a sum over all cyclic placements of one term, every
+factor commutes exactly with the qubit cyclic shift `S` of its index register;
+a first-order Trotterization gives the brickwork of shared local gates drawn in
+Fig. 1(a). Under address encoding `S` is not the pixel translation `T`
+(Lemma 1), and the tests check both statements numerically.
+
+The same symmetry makes every generator block-diagonal in the eigenbasis of
+`S`, the cyclic analogue of the Fourier basis that diagonalizes `T`. The
+implementation expands the shared Pauli terms directly in that basis,
+exponentiates each block with an eigendecomposition and an exact
+Daleckii-Krein backward pass, and applies the block-diagonal unitaries after
+rotating the active index registers into the same basis. Tests compare it with
+direct evolution in the computational basis.
+
+Layer `l` has `b_l * K * 2 * 4**(2 + n_f)` quantum parameters with `b_1 = 1`
+and `b_l = 4` for `l >= 2`. For `Q = 3`, `n_f = 2` on a `32 x 32` canvas the
+readout and head equal the PCS-QCNN ones (`8 x 8 x 4`, 2,570 parameters), and
+the translated-MNIST family uses:
+
+- `sublayers=1`: head-matched control, 4,608 quantum parameters, 7,178 total
+- `sublayers=8`: quantum core and head both matched, 36,864 quantum parameters
+  and 39,434 total, identical to the PCS-QCNN and the RBC-QCNN
+
+### `HendersonQCNN`
+
+`HendersonQCNN` is a Henderson-like reference for `PCSQCNN`. It follows the
+pixel-to-qubit quanvolution construction of the PennyLane demo
+`tutorial_quanvolution` (Henderson et al., 2019) and extends it to a trainable
+multilayer QCNN:
+
+- every pixel is angle-encoded into its own qubit as `RY(theta)|0>` with
+  `theta = a + (b - a) * x`; the default `brightness_range=(0, pi)` is the
+  demo encoding `RY(pi * x)`
+- every layer applies one shared trainable 4-qubit unitary
+  `U = exp(i * sum_alpha theta_alpha P_alpha)` (full Pauli basis, the same
+  parameterization as the PCS-QCNN blocks) to each non-overlapping `2x2`
+  block of the current qubit lattice (kernel 2, stride 2)
+- after every non-final layer, three qubits of each block are measured and a
+  measurement-conditioned single-qubit unitary `V_m` acts on the remaining
+  top-left qubit, which becomes one site of the next, twice coarser lattice
+- after the final layer, all four qubits of every block are measured; the
+  per-block outcome distributions, divided by the number of blocks and
+  channels, form a probability vector that feeds one linear head
+- `channels` independent filter trees are concatenated before the head
+
+Weight sharing over the block tiling makes each layer commute with lattice
+shifts by the stride, the even subgroup of qubit cyclic shifts. Under
+pixel-to-qubit encoding qubit permutations coincide with pixel translations, so
+the readout is equivariant to cyclic image shifts by `2**quantum_layers`
+pixels.
+
+Because the encoded state is a product state and every layer acts on disjoint
+blocks, the global state stays a product over blocks. The module stores each
+surviving qubit by its Pauli vector `(Tr rho, <X>, <Y>, <Z>)` and applies each
+layer as a real transfer tensor built from the trainable unitaries in the
+Heisenberg picture. This is an exact infinite-shot evaluation of the measured
+circuit; tests check it against brute-force density matrices, a PennyLane
+circuit with deferred-measurement pooling, and the demo's `RandomLayers`
+quanvolution kernel. Unitaries are exponentiated in double precision on the
+host through an eigendecomposition with an exact Daleckii-Krein backward pass.
+`qcnn.henderson.use_compiled_block_transfer(True)` optionally compiles the batch contraction
+with `torch.compile` for long CUDA runs; it is not part of the saved model
+spec.
+
+Each channel has `256 * Q + 32 * (Q - 1)` quantum parameters and
+`n_blocks * 16 * num_classes` head weights. The translated-MNIST family uses:
+
+- `channels=12, quantum_layers=3`: depth-matched and parameter-matched main
+  baseline, 40,714 parameters (9,984 quantum, 30,730 classical) against 39,434
+  for the `Q=3, n_f=2` PCS-QCNN
+- `channels=1, quantum_layers=1`: single trainable quanvolution layer in the
+  demo geometry with full readout, 41,226 parameters
+- `channels=1, quantum_layers=3`: head-matched control whose 256-dimensional
+  readout and 2,570-parameter head equal the PCS-QCNN head, 3,402 parameters
+
+### `HurQCNN`
+
+`HurQCNN` is the QCNN of T. Hur, L. Kim, and D. K. Park, "Quantum convolutional
+neural network for classical data classification", Quantum Mach. Intell. 4, 3
+(2022), arXiv:2108.00661, with the gate wiring of the authors' code
+(github.com/takh04/QCNN). It is a qubit-cyclic-shift reference for `PCSQCNN`:
+
+- amplitude encoding: the `image_size**2` pixels, flattened row-major and
+  normalized, are the amplitudes of `n = 2 log2(image_size)` qubits, wire 0
+  being the most significant bit; for `32x32` images wires 0-4 hold the row
+  bits and wires 5-9 the column bits
+- convolution: the paper's convolutional circuit 9 (`U_SU4`, an arbitrary
+  SU(4) with 15 parameters) acts on every nearest-neighbour pair of the
+  active qubit ring (periodic boundary), in the authors' order: the closing
+  pair first, then the even pairs, then the odd pairs; `filters` independent
+  convolutions per layer are the paper's `l_i`
+- pooling: the paper's two-parameter circuit of Fig. 3 (`CRZ`, `X` on the
+  control, `CRX`) acts on every pair `(a_{2k+1} -> a_{2k})` and the control is
+  traced out (ansatz 9a)
+- multi-class output: convolution-pooling layers repeat while the pooled
+  register keeps at least `ceil(log2 num_classes)` qubits (the construction
+  suggested in the paper's Sec. V); a final convolution acts on the remaining
+  register, whose outcome probabilities feed one linear head (the paper's
+  hybrid ending)
+
+For `8` qubits and two classes this is the paper's Fig. 1 circuit with 51
+parameters; the authors' code orients the last pooling gate the other way,
+which the SU(4) in front of it absorbs. For the `32x32`, ten-class benchmark
+the network is `10 -> conv -> pool -> 5 -> conv -> measure 5`: 32 quantum
+parameters (`30 * filters + 2`) and a 330-parameter head on 32 probabilities.
+The paper's own training (Nesterov or Adam, learning rate 0.01, batch 25, 200
+iterations, standard-normal initialization) is replaced by the Figure 2
+protocol.
+
+`channels` independent copies of the circuit (our extension, like the
+`HendersonQCNN` channels) read the same encoded state; their outcome
+distributions, divided by `channels`, are concatenated before the head, which
+then holds `320 * channels + 10` parameters. The translated-MNIST family uses
+`channels=1` (the paper's circuit, 362 parameters; also with `filters=4, 16,
+64`, which keeps one circuit and adds 30 quantum parameters per filter), `channels=8` (256-dimensional
+readout and 2,570-parameter head as the PCS-QCNN, 2,826 parameters), and
+`channels=112` (39,434 parameters as the PCS-QCNN, 3,584 of them quantum).
+Matching the 36,864 quantum parameters of the PCS-QCNN would take about 1,230
+filters per layer; the paper itself tested at most three. The weight sharing is a QCS prior on address qubits, so qubit shifts
+are not pixel translations (case (ii) of the article's Lemma 1).
+
+Traced-out qubits are never acted on again, so the module simulates one pure
+`n`-qubit state vector per channel and marginalizes over them at the readout
+(deferred measurement). The disjoint gates of each layer are applied together
+as dense operators on the two sides of a wire split (`build_gate_phases`), and
+large channel counts are processed in chunks with activation checkpointing. Tests check the readout against a PennyLane circuit built from
+the authors' `U_SU4` and `Pooling_ansatz1` gate sequences.
+
 ### `ClassicalCNN` and `ClassicalMLP`
 
 `ClassicalCNN` and `ClassicalMLP` provide the classical MNIST references while
@@ -351,6 +508,11 @@ generic centered-resize preprocessing defaults for the low-level data helper:
 - grayscale normalization to `[0, 1]`
 - standard MNIST test split membership kept unchanged
 
+`stratified_validation_split(dataset, validation_per_class=..., seed=...)`
+holds out a class-balanced validation part of a prepared training split. It is
+used only for hyperparameter selection; reported results keep the full
+training split and the standard test split.
+
 Passing `samples_per_class=None` selects the full standard MNIST training split
 instead of a class-balanced subset regime while preserving the same generic
 preprocessing pipeline.
@@ -361,7 +523,7 @@ The preparation pipeline:
 2. Keep the standard MNIST test split membership unchanged.
 3. Resize every image to `scaled_image_size` with bilinear interpolation.
 4. Place every resized image onto the final `image_size x image_size` canvas.
-5. Optionally translate the digit by seeded integer offsets drawn independently per axis from `[-max_offset, max_offset]`.
+5. Optionally translate the digit by seeded integer offsets drawn independently per axis from `[-max_offset, max_offset]`; `test_max_offset` optionally sets a different range for the test split. Test translations depend only on the seed and their range, so a run trained with a smaller `max_offset` and `test_max_offset=8` is tested on exactly the translated-MNIST benchmark test split.
 6. Normalize grayscale values into `[0, 1]`.
 
 If `image_size`, `samples_per_class`, or the optional translation pipeline

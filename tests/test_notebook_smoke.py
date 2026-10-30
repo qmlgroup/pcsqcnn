@@ -50,7 +50,7 @@ def test_legacy_pcsqcnn_artifact_surface_is_removed() -> None:
 
     offenders: list[str] = []
     for path in project_root.rglob("*.py"):
-        if "__pycache__" in path.parts:
+        if any(part in {"__pycache__", ".venv"} for part in path.parts):
             continue
         text = path.read_text(encoding="utf-8")
         for symbol in removed_symbols:

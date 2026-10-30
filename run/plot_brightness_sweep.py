@@ -9,7 +9,8 @@ import re
 from typing import TYPE_CHECKING, Sequence
 import warnings
 
-from qcnn import ARTICLE_PANEL_FIGSIZE, configure_matplotlib_pdf_fonts, load_saved_training_histories
+from qcnn import load_saved_training_histories
+from qcnn.matplotlib_config import MANUSCRIPT_HALF_FIGSIZE, configure_manuscript_plot_fonts
 
 if TYPE_CHECKING:
     from matplotlib.figure import Figure
@@ -48,7 +49,7 @@ def _require_matplotlib():
     try:
         import matplotlib
 
-        configure_matplotlib_pdf_fonts(matplotlib)
+        configure_manuscript_plot_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(
@@ -145,7 +146,7 @@ def plot_brightness_sweep_epoch(
     *,
     sweep_root: str | Path,
     epoch: int,
-    figsize: tuple[float, float] = ARTICLE_PANEL_FIGSIZE,
+    figsize: tuple[float, float] = MANUSCRIPT_HALF_FIGSIZE,
 ) -> Figure:
     plt = _require_matplotlib()
     series_by_architecture = summarize_brightness_sweep_epoch(sweep_root=sweep_root, epoch=epoch)
@@ -176,7 +177,7 @@ def plot_brightness_sweep_epoch(
         all_x_values.extend(series.brightness_pi)
 
     ax.set_title(f"Epoch {epoch}")
-    ax.set_xlabel("Max brightness / pi")
+    ax.set_xlabel(r"Angle upper bound $b/\pi$")
     ax.set_ylabel("Accuracy")
     if len(all_x_values) == 1:
         ax.set_xlim(all_x_values[0] - 0.05, all_x_values[0] + 0.05)

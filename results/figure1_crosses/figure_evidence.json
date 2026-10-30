@@ -1,0 +1,268 @@
+{
+  "positions": [
+    [
+      3,
+      3
+    ],
+    [
+      4,
+      12
+    ]
+  ],
+  "translation": 8,
+  "bit_cycle_power": 3,
+  "seed": 0,
+  "source_sha256": {
+    "figure1_crosses.py": "2ab7eff6bcd267a66d012c7836b3b2eb3880d98f0f42e48d15a3a83cc42ce7b9",
+    "quantum.py": "da45438108c65950a23db8dadf3da972e91dac3273a0955d451db689871f7283",
+    "layout.py": "a4d16e5c3fb1072a25cf3106f9b566c7f889c31240b4412d2a7a12e3af338d58",
+    "baselines/sp_qcnn.py": "324e4636f9d3820d676cbe64c9869a3d1a6ecaa8ca73302c09161aac23543429"
+  },
+  "runs": {
+    "pcs_seed0": {
+      "checkpoint_sha256": "61ffe2fbf9e720490ba40f63138b1c2512e101eeff17f63e4296d3829c1a5c79",
+      "examples": {
+        "blank": {
+          "p_cross": 0.1587960215050296,
+          "actual_crosses": 0
+        },
+        "top": {
+          "p_cross": 0.9034206673462298,
+          "actual_crosses": 1
+        },
+        "bottom": {
+          "p_cross": 0.9034206673462298,
+          "actual_crosses": 1
+        },
+        "pair": {
+          "p_cross": 0.9978472642283889,
+          "actual_crosses": 2
+        },
+        "T_pair": {
+          "p_cross": 0.9978472642283889,
+          "actual_crosses": 2
+        },
+        "S_pair": {
+          "p_cross": 1.0184614164557888e-12,
+          "actual_crosses": 0
+        }
+      },
+      "Tx_state_linf": 0.0,
+      "Tx_map_linf": 0.0,
+      "Sx_state_linf": 0.042269453925455926,
+      "Sx_map_linf": 7.415664738053097
+    },
+    "pcs_seed1": {
+      "checkpoint_sha256": "84af1795e6f3b45430ee78482846a6d8454b77abdc8652b3522ed6fc819d7ab3",
+      "examples": {
+        "blank": {
+          "p_cross": 0.14679811975974316,
+          "actual_crosses": 0
+        },
+        "top": {
+          "p_cross": 0.9246345129385686,
+          "actual_crosses": 1
+        },
+        "bottom": {
+          "p_cross": 0.924634512938569,
+          "actual_crosses": 1
+        },
+        "pair": {
+          "p_cross": 0.9988582333237014,
+          "actual_crosses": 2
+        },
+        "T_pair": {
+          "p_cross": 0.9988582333237016,
+          "actual_crosses": 2
+        },
+        "S_pair": {
+          "p_cross": 1.0249954255447344e-13,
+          "actual_crosses": 0
+        }
+      },
+      "Tx_state_linf": 0.0,
+      "Tx_map_linf": 0.0,
+      "Sx_state_linf": 0.047390180505042914,
+      "Sx_map_linf": 7.98001183765738
+    },
+    "pcs_seed2": {
+      "checkpoint_sha256": "db214b04a52574c682832656ceeece46df95de42ebfb99c0a30ea3b9dd8d164d",
+      "examples": {
+        "blank": {
+          "p_cross": 0.12248022017955695,
+          "actual_crosses": 0
+        },
+        "top": {
+          "p_cross": 0.9510772888130059,
+          "actual_crosses": 1
+        },
+        "bottom": {
+          "p_cross": 0.9510772888130052,
+          "actual_crosses": 1
+        },
+        "pair": {
+          "p_cross": 0.9996308200619255,
+          "actual_crosses": 2
+        },
+        "T_pair": {
+          "p_cross": 0.9996308200619255,
+          "actual_crosses": 2
+        },
+        "S_pair": {
+          "p_cross": 1.5813079072684106e-15,
+          "actual_crosses": 0
+        }
+      },
+      "Tx_state_linf": 0.0,
+      "Tx_map_linf": 0.0,
+      "Sx_state_linf": 0.04354125677455783,
+      "Sx_map_linf": 9.115303290415063
+    },
+    "qcs_seed0": {
+      "checkpoint_sha256": "04fce95fff5c828f9cac1f07d9a3d450cf0d897e0e908d14673e5da8065c96f4",
+      "examples": {
+        "blank": {
+          "p_cross": 0.4314084070369403,
+          "actual_crosses": 0
+        },
+        "top": {
+          "p_cross": 0.622298684631067,
+          "actual_crosses": 1
+        },
+        "bottom": {
+          "p_cross": 0.7200402256074117,
+          "actual_crosses": 1
+        },
+        "pair": {
+          "p_cross": 0.957969737330052,
+          "actual_crosses": 2
+        },
+        "T_pair": {
+          "p_cross": 0.9654628165543341,
+          "actual_crosses": 2
+        },
+        "S_pair": {
+          "p_cross": 0.9579697373300514,
+          "actual_crosses": 0
+        }
+      },
+      "Tx_state_linf": 0.6553546145547817,
+      "Tx_map_linf": 11.805345121631069,
+      "Sx_state_linf": 1.1567172039353268e-16,
+      "Sx_map_linf": 7.993605777301127e-15
+    },
+    "qcs_seed1": {
+      "checkpoint_sha256": "48b92b69985d3d16c7247f9368a2221fe09bd982efdcf3f2bc0be154114b4fd0",
+      "examples": {
+        "blank": {
+          "p_cross": 0.40803213853766956,
+          "actual_crosses": 0
+        },
+        "top": {
+          "p_cross": 0.6216216074201608,
+          "actual_crosses": 1
+        },
+        "bottom": {
+          "p_cross": 0.6245295719699947,
+          "actual_crosses": 1
+        },
+        "pair": {
+          "p_cross": 0.8783106291215456,
+          "actual_crosses": 2
+        },
+        "T_pair": {
+          "p_cross": 0.879600957231105,
+          "actual_crosses": 2
+        },
+        "S_pair": {
+          "p_cross": 0.8783106291215449,
+          "actual_crosses": 0
+        }
+      },
+      "Tx_state_linf": 0.8399966123680632,
+      "Tx_map_linf": 4.678067231529337,
+      "Sx_state_linf": 4.2349997174859565e-17,
+      "Sx_map_linf": 1.9984014443252818e-15
+    },
+    "qcs_seed2": {
+      "checkpoint_sha256": "03e76016756b7163d9e2dba6d15252ab027fd560ab7c5bc5f8c4b3a68f68285d",
+      "examples": {
+        "blank": {
+          "p_cross": 0.4580087485729656,
+          "actual_crosses": 0
+        },
+        "top": {
+          "p_cross": 0.42749350169144323,
+          "actual_crosses": 1
+        },
+        "bottom": {
+          "p_cross": 0.4410443052600324,
+          "actual_crosses": 1
+        },
+        "pair": {
+          "p_cross": 0.6210593959877764,
+          "actual_crosses": 2
+        },
+        "T_pair": {
+          "p_cross": 0.6671369504518351,
+          "actual_crosses": 2
+        },
+        "S_pair": {
+          "p_cross": 0.6210593959877765,
+          "actual_crosses": 0
+        }
+      },
+      "Tx_state_linf": 0.32516789864157525,
+      "Tx_map_linf": 0.534958129021037,
+      "Sx_state_linf": 6.546139416680338e-17,
+      "Sx_map_linf": 1.4654943925052066e-14
+    }
+  },
+  "visualization": {
+    "quantity": "P(color=0 | address), marginalized over auxiliary qubit",
+    "symbol": "p_0(r)",
+    "common_linear_range": [
+      0,
+      1
+    ],
+    "input_relation": "sin(vartheta)^2",
+    "palettes": {
+      "input": [
+        "#f4f7f0",
+        "#d0e3d9",
+        "#9dc5b8",
+        "#67a496",
+        "#397e78",
+        "#18515a"
+      ],
+      "output": [
+        "#fff7e9",
+        "#fdd7b0",
+        "#f5a071",
+        "#dc655c",
+        "#a53654",
+        "#511b48"
+      ]
+    },
+    "head_weights_used": false,
+    "projection_checks": {
+      "pcs": {
+        "minimum_address_mass": 0.0014886586632469696,
+        "state_norm_error": 1.9984014443252818e-15,
+        "Tx_conditional_linf": 0.0,
+        "Tx_state_linf": 0.0,
+        "Sx_conditional_linf": 0.21946284900201163,
+        "Sx_state_linf": 0.04226945392545592
+      },
+      "qcs": {
+        "minimum_address_mass": 6.051375173610952e-14,
+        "state_norm_error": 1.1102230246251565e-15,
+        "Tx_conditional_linf": 0.7537527022377233,
+        "Tx_state_linf": 0.6553546145547817,
+        "Sx_conditional_linf": 3.091971123581061e-14,
+        "Sx_state_linf": 1.1567172039353268e-16
+      }
+    },
+    "scope": "Conditional color only; address mass, phases, and auxiliary correlations are not shown."
+  }
+}

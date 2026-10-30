@@ -1,0 +1,29 @@
+\documentclass[border=0pt]{standalone}
+\input{crosses_style.tex}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=-1mm]
+\path[use as bounding box] (0,0) rectangle (65,31.5);
+% Two address registers form the joint pixel address; features are separate.
+\draw[group rule] (10.5,4)--(9.4,4)--(9.4,20.2)--(10.5,20.2);
+\node[anchor=east,font=\fontsize{8}{9.5}\selectfont] at (7.9,12.1) {$\mathbf r$};
+\foreach \yy/\reg in {7/x,17.2/y,27.4/{f,c}}{
+ \node[anchor=east,font=\fontsize{8}{9.5}\selectfont] at (12.5,\yy) {$\reg$};
+ \draw[line width=.4pt] (13.5,\yy)--(64.5,\yy);
+ \draw[line width=.4pt] (14.2,\yy+.6)--(15.4,\yy-.6);
+}
+\foreach \yy/\axis in {7/x,17.2/y}{
+ \squaregate{19}{\yy}{\mathcal F_\axis}
+ \squaregate{58}{\yy}{\mathcal F_\axis^{\dagger}}
+ \node[anchor=base,font=\fontsize{8}{9.5}\selectfont] at (28,\yy-1.3) {$\ket{k_\axis}$};
+ \node[anchor=base,font=\fontsize{8}{9.5}\selectfont] at (48.5,\yy-1.3) {$\ket{k_\axis}$};
+}
+% Both preserved Fourier indices jointly select a single feature unitary.
+\draw[line width=.4pt] (38.5,7)--(38.5,27.4);
+\foreach \yy in {7,17.2}{
+ \draw[draw=Ink,fill=white,line width=.4pt] (37.9,\yy-.6) rectangle (39.1,\yy+.6);
+}
+\squaregate{38.5}{27.4}{U_{\mathbf k}}
+\draw[draw=black!35,line width=.3pt,dashed] (33.8,4.7) rectangle (43.2,31);
+\node[fill=white,inner xsep=.65mm,inner ysep=.15mm,font=\fontsize{8}{9.5}\selectfont] at (38.5,4.7) {$\mathcal B$};
+\end{tikzpicture}
+\end{document}

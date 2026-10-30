@@ -3,13 +3,18 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import numpy as np
 import torch
 
-from qcnn import ARTICLE_PANEL_FIGSIZE, configure_matplotlib_pdf_fonts
 from qcnn.article_training import build_canonical_reference_run_directory_name
+from qcnn.json_artifacts import load_payload
+
+from qcnn.matplotlib_config import MANUSCRIPT_HALF_FIGSIZE, configure_manuscript_plot_fonts
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
@@ -27,9 +32,9 @@ FILL_ZORDER_BASE = 10.0
 CONTOUR_ZORDER_BASE = 30.0
 MEAN_LINE_ZORDER_BASE = 40.0
 TEXT_ZORDER_BASE = 50.0
-MEAN_LINE_WIDTH = 0.9
+MEAN_LINE_WIDTH = 0.6
 SHOT_LABEL_Y_FRACTION = 0.94
-SHOT_LABEL_X_SHIFT_BIN_WIDTHS = 0.35
+SHOT_LABEL_OFFSET_POINTS = 2.0
 
 
 @dataclass(frozen=True)
@@ -66,7 +71,7 @@ def _require_matplotlib():
     try:
         import matplotlib
 
-        configure_matplotlib_pdf_fonts(matplotlib)
+        configure_manuscript_plot_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(
@@ -94,7 +99,7 @@ def shot_budget_sort_key(shot_budget: int | None) -> tuple[int, int]:
 
 
 def load_finite_shot_loss_sampling_payload(payload_path: str | Path) -> dict[str, Any]:
-    payload = torch.load(Path(payload_path), map_location="cpu", weights_only=False)
+    payload = load_payload(payload_path)
     if not isinstance(payload, Mapping):
         raise ValueError("finite-shot loss-sampling payload must deserialize to a mapping.")
     return dict(payload)
@@ -219,11 +224,16 @@ def build_histogram_layers(panel: FiniteShotLossSamplingPanel) -> list[FiniteSho
 def plot_article_figure_7_panel(
     *,
     panel: FiniteShotLossSamplingPanel,
-    figsize: tuple[float, float] = ARTICLE_PANEL_FIGSIZE,
+    figsize: tuple[float, float] = MANUSCRIPT_HALF_FIGSIZE,
+    ax: Axes | None = None,
 ) -> "Figure":
     plt = _require_matplotlib()
 
-    figure, ax = plt.subplots(figsize=figsize)
+    standalone = ax is None
+    if standalone:
+        figure, ax = plt.subplots(figsize=figsize)
+    else:
+        figure = ax.figure
     figure.patch.set_facecolor("white")
     ax.set_facecolor("white")
 
@@ -263,7 +273,7 @@ def plot_article_figure_7_panel(
             layer.bin_centers,
             layer.relative_frequency,
             color=color,
-            linewidth=1.5,
+            linewidth=0.9,
             label=series.label,
             zorder=CONTOUR_ZORDER_BASE + contour_index,
         )
@@ -285,28 +295,40 @@ def plot_article_figure_7_panel(
             )
         )
 
-    ax.set_xlabel("Batch-mean test cross-entropy (nats/sample)")
+    ax.set_xlabel("Batch-mean test cross-entropy\n(nats/sample)")
     ax.set_ylabel("Relative frequency")
     ax.set_xlim(0.0, panel.histogram_upper_edge)
     ax.set_ylim(bottom=0.0)
-    ax.legend(handles=step_handles, loc="upper right", framealpha=0.8)
+    if standalone:
+        legend = ax.legend(
+            handles=step_handles, loc="upper center", bbox_to_anchor=(0.5, 0.99),
+            bbox_transform=figure.transFigure, frameon=False, ncols=2,
+            handlelength=1.4, columnspacing=0.8, labelspacing=0.25, borderaxespad=0,
+        )
+        legend.set_in_layout(False)
 
-    y_max = ax.get_ylim()[1]
-    x_shift = (panel.bins[1] - panel.bins[0]) * SHOT_LABEL_X_SHIFT_BIN_WIDTHS
-    y_position = y_max * SHOT_LABEL_Y_FRACTION
-    for mean_position, shot_label, color, index in mean_positions:
-        ax.text(
-            mean_position + x_shift,
-            y_position,
-            shot_label,
-            color="black",
-            rotation=90,
-            va="top",
-            ha="left",
+        figure.tight_layout(pad=0.35, rect=(0, 0, 1, 0.80))
+    # Keep labels legible at print size; close mean lines need staggered labels.
+    occupied = []
+    for mean_position, shot_label, color, index in sorted(mean_positions):
+        left = shot_label == "Inf" and panel.epoch == 100
+        offset = -0.5 if left else SHOT_LABEL_OFFSET_POINTS
+        label = ax.annotate(
+            shot_label, xy=(mean_position, SHOT_LABEL_Y_FRACTION),
+            xycoords=ax.get_xaxis_transform(), xytext=(offset, 0),
+            textcoords="offset points", color="black", rotation=90,
+            va="top", ha="right" if left else "left",
+            bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.2},
             zorder=TEXT_ZORDER_BASE + index,
         )
+        for row in range(len(mean_positions)):
+            label.set_position((offset, -24 * row))
+            figure.canvas.draw()
+            bounds = label.get_window_extent(figure.canvas.get_renderer()).expanded(1.15, 1.08)
+            if not any(bounds.overlaps(previous) for previous in occupied):
+                occupied.append(bounds)
+                break
 
-    figure.tight_layout()
     return figure
 
 

@@ -303,14 +303,18 @@ def run_manifest_tasks(
             output_directory = task.output_directory
             completion_path = output_directory / task.completion_filename
             if output_directory.exists():
-                if is_completed_output_directory(output_directory, completion_filename=task.completion_filename):
-                    if not rebuild:
+                if not rebuild:
+                    if is_completed_output_directory(output_directory, completion_filename=task.completion_filename):
                         progress.emit_status("SKIP", task.name, output_directory)
                         progress.advance_tasks()
                         continue
-                    shutil.rmtree(output_directory)
-                else:
-                    shutil.rmtree(output_directory)
+                    if any(output_directory.iterdir()):
+                        raise FileExistsError(
+                            f"Incomplete task {task.name!r} has existing outputs: {output_directory}. "
+                            "Files were preserved. Resume with the experiment's resume command "
+                            "if available, use a new output directory, or pass --rebuild to discard them."
+                        )
+                shutil.rmtree(output_directory)
 
             progress.emit_status("RUN", task.name, output_directory)
             context = ManifestTaskContext(progress)

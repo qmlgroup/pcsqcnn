@@ -292,7 +292,7 @@ def test_main_saves_both_panel_outputs_without_rendering(
         def __init__(self, label: str) -> None:
             self.label = label
 
-        def savefig(self, path: Path) -> None:
+        def savefig(self, path: Path, **kwargs) -> None:
             saved_paths.append(path)
 
     class FakePyplot:

@@ -8,13 +8,14 @@ from typing import Any, Mapping, Sequence
 import torch
 
 from qcnn import (
-    ARTICLE_PANEL_FIGSIZE,
     TemporalStatisticSummary,
-    configure_matplotlib_pdf_fonts,
     plot_temporal_summary,
     summarize_temporal_samples,
 )
 from qcnn.article_training import build_canonical_reference_run_directory_name
+from qcnn.json_artifacts import load_payload
+
+from qcnn.matplotlib_config import MANUSCRIPT_COMPACT_FIGSIZE, configure_manuscript_plot_fonts
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
@@ -60,7 +61,7 @@ def _require_matplotlib():
     try:
         import matplotlib
 
-        configure_matplotlib_pdf_fonts(matplotlib)
+        configure_manuscript_plot_fonts(matplotlib)
         import matplotlib.pyplot as plt
     except ImportError as exc:
         raise ImportError(
@@ -244,7 +245,7 @@ def _draw_staggered_label_block(
 
 
 def load_finite_shot_accuracy_payload(payload_path: str | Path) -> dict[str, Any]:
-    payload = torch.load(Path(payload_path), map_location="cpu", weights_only=False)
+    payload = load_payload(payload_path)
     if not isinstance(payload, Mapping):
         raise ValueError("finite-shot accuracy payload must deserialize to a mapping.")
     return dict(payload)
@@ -319,7 +320,7 @@ def plot_article_figure_6(
     epoch_start: int | None = None,
     epoch_end: int | None = None,
     epoch_group_size: int = 1,
-    figsize: tuple[float, float] = ARTICLE_PANEL_FIGSIZE,
+    figsize: tuple[float, float] = MANUSCRIPT_COMPACT_FIGSIZE,
 ) -> "Figure":
     plt = _require_matplotlib()
     series_by_budget = summarize_finite_shot_accuracy_payload(
@@ -340,10 +341,10 @@ def plot_article_figure_6(
             ax,
             summary=series.summary,
             color=color,
-            linewidth=1.5,
+            linewidth=1.1,
             linestyle="-",
             marker="o",
-            markersize=3.0,
+            markersize=2.5,
             label=series.label,
             show_band=False,
         )
@@ -352,6 +353,9 @@ def plot_article_figure_6(
     ax.set_xlabel("Epoch checkpoint")
     ax.set_ylabel("Accuracy")
     ax.set_xlim(min(all_epoch_values), max(all_epoch_values))
+    # Reserve a lower strip for the direct labels, clear of the accuracy curves.
+    low, high = ax.get_ylim()
+    ax.set_ylim(max(0.0, low - 0.15 * (high - low)), high)
     _draw_staggered_label_block(ax, series_by_budget=series_by_budget)
 
     figure.tight_layout()
