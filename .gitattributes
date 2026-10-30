@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.pdf binary
+*.png binary
+*.npz binary
+*.pt binary
+*.zip binary
+# Numerical bundles have byte-level checksums.
+results/** -text whitespace=cr-at-eol
+# This diagram uses literal TeX control spaces at line endings.
+figsrc/quantikz/pcs_qcnn_layers.tex whitespace=-blank-at-eol

@@ -1,0 +1,8 @@
+root = true
+
+[*.{py,sh,md,toml,tex,json,yml,yaml}]
+end_of_line = lf
+
+# Numerical bundles have byte-level checksums.
+[results/**]
+end_of_line = unset
